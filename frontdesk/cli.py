@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import shutil
 import sys
 from datetime import datetime
@@ -124,6 +125,8 @@ def cmd_serve(_: argparse.Namespace, __: Console) -> int:
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+    for noisy in ("httpx", "httpcore", "google_genai", "mcp"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
     p = argparse.ArgumentParser(prog="frontdesk", description="Maplewood front-desk inbox agent")
     sub = p.add_subparsers(dest="cmd", required=True)
 
