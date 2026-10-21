@@ -67,7 +67,7 @@
         </mxCell>
 
         <!-- AI provider + fallback -->
-        <mxCell id="ai" value="&lt;b&gt;AI model&lt;/b&gt; (Gemini or Claude) via one provider layer&lt;br&gt;counts calls · tokens · cost · latency per message&lt;br&gt;model out of quota → next model in the chain;&lt;br&gt;all exhausted / budget hit / bad key → ALERT and stop" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+        <mxCell id="ai" value="&lt;b&gt;AI model chain&lt;/b&gt;: Gemini → Groq backup (one provider layer)&lt;br&gt;timeout per call · 20 s deadline per message&lt;br&gt;slow/failing → next model for that call; quota/bad key → dropped;&lt;br&gt;all exhausted / budget hit → ALERT and stop" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
           <mxGeometry x="720" y="290" width="320" height="90" as="geometry"/>
         </mxCell>
         <mxCell id="e3ai" style="html=1;endArrow=none;dashed=1;strokeColor=#9673a6;" edge="1" parent="1" source="s3" target="ai">

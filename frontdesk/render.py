@@ -26,13 +26,22 @@ class TerminalRenderer:
             self.c.rule(f"[bold]Maplewood front-desk agent[/] · mode={ev.data['mode']} · "
                         f"model={ev.data.get('model') or '-'} · MCP={ev.data['transport']} · "
                         f"{ev.data['messages']} message(s)")
+            if ev.data.get("chain"):
+                self.c.print(f"[dim]AI chain: {' → '.join(ev.data['chain'])} · deadline "
+                             f"{ev.data.get('deadline_s') or '-'} s per message[/]")
+            return
+        if ev.type == "llm.retry":
+            self.c.print(Text(f"  … {ev.data['model']}: {ev.data['reason']}, retrying in {ev.data['wait_s']} s",
+                              style="yellow"))
             return
         if ev.type == "mcp.connected":
             self.c.print(f"[dim]MCP connected ({ev.data['transport']}): {', '.join(ev.data['tools'])}[/]")
             return
         if ev.type == "llm.model_switched":
+            scope = "for the rest of the run" if ev.data.get("permanent") else "for this call"
             self.c.print(Text.assemble((" MODEL SWITCH ", "bold black on yellow"),
-                                       f" {ev.data['from_model']} → {ev.data['to_model']}: {ev.data['reason']}"))
+                                       f" {ev.data['from_model']} → {ev.data['to_model'] or 'no model left'} "
+                                       f"({scope}): {ev.data['reason']}"))
             return
         if ev.type == "llm.stopped":
             self.c.print(Panel(Text(f"{ev.data['reason']}\n\nNo more model calls will be made in this run. The "
@@ -53,6 +62,9 @@ class TerminalRenderer:
         if ev.message_id is None:
             return
         self.buf.setdefault(ev.message_id, []).append(ev)
+        if ev.type == "llm.deadline":
+            self.c.print(Text(f"  … {ev.message_id}: {ev.data['deadline_s']:.0f} s deadline reached; continuing "
+                              "without AI (marked degraded)", style="yellow"))
         if ev.type == "message.failed":
             self.c.print(f"[bold red]{ev.message_id} FAILED[/] {ev.data.get('error')}")
         if ev.type == "result.ready":
@@ -81,8 +93,12 @@ class TerminalRenderer:
         msg = get("message.received")
         if msg:
             d = msg[0].data
-            rows.append(Text.assemble(("from ", "dim"), (f"{d.get('from_name')} <{d.get('from_contact')}>", "bold"),
-                                      (f"  via {d.get('channel')}", "dim")))
+            ident = (get("sender.identified") or [None])[0]
+            name = d.get("from_name")
+            if not name and ident and ident.data.get("relationship") == "self" and ident.data.get("patient_name"):
+                name = f"{ident.data['patient_name']} (name from record)"
+            rows.append(Text.assemble(("from ", "dim"), (f"{name or 'unknown sender'} <{d.get('from_contact') or '-'}>",
+                                                         "bold"), (f"  via {d.get('channel')}", "dim")))
             rows.append(Text(f"“{d.get('body')}”", style="italic"))
         tbl = Table.grid(padding=(0, 1))
         tbl.add_column(style="dim", width=12)
@@ -93,7 +109,8 @@ class TerminalRenderer:
                                     f" · {e.data['method']}")
         for e in get("safety.checked"):
             lvl = e.data["level"]
-            extra = ", ".join(e.data.get("hits") or e.data.get("urgent_hits") or e.data.get("idiom_hits") or [])
+            extra = ", ".join(e.data.get("hits") or e.data.get("deferred_hits", []) + e.data.get("idiom_hits", [])
+                              or e.data.get("urgent_hits") or [])
             tbl.add_row(f"safety {e.data['part']}", Text.assemble((f" {lvl} ", LEVEL_STYLE.get(lvl, "")),
                                                                   f"  {extra}  ({e.data['decided_by']})"))
         for e in get("understanding.ready"):
@@ -113,6 +130,11 @@ class TerminalRenderer:
                 brief = f"{res['booked']['date']} {res['booked']['start']} {res['booked']['provider']}"
             tbl.add_row("tool", Text.assemble((f"{e.data['by']:<12}", BY_STYLE.get(e.data["by"], "")),
                                               f"{st} {e.data['tool']}  ", (str(brief), "dim")))
+        for e in get("understanding.degraded") + get("agent.degraded"):
+            done_before = e.data.get("ai_actions_before_fallback")
+            tbl.add_row("degraded", Text(f"{e.data.get('error')}" + (f" · AI had completed {done_before}: sent to "
+                                                                     "front desk, nothing redone" if done_before
+                                                                     else ""), style="yellow"))
         for e in get("policy.enforced"):
             tbl.add_row("enforced", f"[yellow]{e.data['step']}[/]")
         for e in get("actions.derived"):

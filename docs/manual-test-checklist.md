@@ -62,6 +62,17 @@ To replay a message step by step: `fd show LIVE-001 --run runs\<folder>` (the fo
 - [ ] Bad key: `$env:GEMINI_API_KEY = 'bad'; fd run --ids M001` → alert "rejected the API key", message still
       handled by rules. Then close the terminal (or `Remove-Item Env:GEMINI_API_KEY`) so `.env` is used again.
 
+## 6b. Groq backup and time limits
+
+- [ ] Gemini down → Groq takes over: `$env:GEMINI_API_KEY = 'bad'; fd run --text "Can I get my lisinopril refilled?" --contact 555-0102`
+      → yellow **MODEL SWITCH** gemini → groq "(for the rest of the run)", message completed, not degraded.
+      Then `Remove-Item Env:GEMINI_API_KEY`.
+- [ ] Tight deadline: `$env:FRONTDESK_MESSAGE_DEADLINE_S='2'; fd run --text "I have a rash since yesterday" --contact 555-0102`
+      → "deadline reached; continuing without AI", `degraded`, routed to `clinician_urgent`. Then
+      `Remove-Item Env:FRONTDESK_MESSAGE_DEADLINE_S`.
+- [ ] Possible red flag + AI down: same 2 s deadline with `--text "No chest pain, but I feel strange, can I be seen?"`
+      → `escalate_emergency` (an AI failure never clears a possible emergency).
+
 ## 7. Where to verify
 
 | What | Where |

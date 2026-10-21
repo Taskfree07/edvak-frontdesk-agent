@@ -5,6 +5,7 @@ Every stage emits events (see events.py). Nothing here prints; renderers subscri
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -14,7 +15,7 @@ from frontdesk.act.rule_agent import RuleAgent
 from frontdesk.config import Settings
 from frontdesk.data import ClinicData, Message
 from frontdesk.events import EventBus, Stopwatch
-from frontdesk.llm import LLM, LLMError
+from frontdesk.llm import LLM, LLMError, deadline_active, message_deadline
 from frontdesk.outcome import PHI_INTENTS, Outcome, ReplyItem, derive, enforce_followups
 from frontdesk.policy.identity import Identity
 from frontdesk.reply.compose import Reply, compose, wrap
@@ -51,17 +52,28 @@ class Pipeline:
 
     # ------------------------------------------------------------------ understanding (can be prefetched)
     async def understand(self, msg: Message, identity: Identity) -> tuple[Understanding, bool, str | None]:
-        """Returns (understanding, degraded, error)."""
+        """Returns (understanding, degraded, error). Bounded by the message deadline (its own one when prefetched)."""
         if self.llm_understander is None:
             return self.rules_understander.understand(msg, identity), False, None
+        budget = nullcontext() if deadline_active() else message_deadline(self.settings.message_deadline_s)
         try:
-            return await self.llm_understander.understand(msg, identity), False, None
+            with budget:
+                return await self.llm_understander.understand(msg, identity), False, None
         except LLMError as e:
             return self.rules_understander.understand(msg, identity), True, str(e)
 
+    async def process(self, msg: Message, prefetched: tuple[Understanding, bool, str | None] | None = None,
+                      already_spent_s: float = 0.0) -> MessageResult:
+        """already_spent_s: time the (prefetched) understanding step took, counted against the message deadline."""
+        budget = self.settings.message_deadline_s
+        if budget and self.llm:
+            budget = max(1.0, budget - already_spent_s)
+        with message_deadline(budget if self.llm else None):
+            return await self._process(msg, prefetched)
+
     # ------------------------------------------------------------------ main
-    async def process(self, msg: Message, prefetched: tuple[Understanding, bool, str | None] | None = None
-                      ) -> MessageResult:
+    async def _process(self, msg: Message, prefetched: tuple[Understanding, bool, str | None] | None = None
+                       ) -> MessageResult:
         total = Stopwatch()
         mid = msg.id
         ledger = Ledger(mid)
@@ -94,11 +106,15 @@ class Pipeline:
             if degraded:
                 trace["degraded"] = True
                 trace["errors"].append(f"understand: {err}")
+                self.bus.emit("understanding.degraded", mid, stage="understand", error=err)
             self.bus.emit("understanding.ready", mid, stage="understand", duration_ms=sw.ms,
                           source="rules" if (degraded or not self.llm) else "llm", **und.model_dump())
             # 3b. Safety gate, part B (LLM concern OR-ed in; idioms need an LLM all-clear)
             llm_concern = None if degraded else und.clinical_concern
             safety = combine(safety, llm_concern)
+            if degraded and safety.level == "none" and "clinical" in und.intents:
+                # Without the AI nobody has judged this clinical message: a clinician sees it today.
+                safety.level, safety.decided_by = "urgent_clinical", "ai_unavailable"
             self.bus.emit("safety.checked", mid, stage="safety", part="B", **safety.as_dict())
 
         if safety.level == "emergency":

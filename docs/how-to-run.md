@@ -51,13 +51,26 @@ FRONTDESK_MAX_RPM=12          # requests per minute (stay just under the model's
 FRONTDESK_CONCURRENCY=2
 ```
 
-### Which model is used
+### Which model is used, and the Groq backup
 
-- Default with a Gemini key: `gemini-3.5-flash-lite`.
-- If that model's daily quota runs out (or it is retired/overloaded), the app switches to the next model in
-  `FRONTDESK_MODEL_FALLBACKS` (default `gemini-3-flash-preview,gemini-3.1-flash-lite,gemini-2.5-flash`) and prints
-  a yellow **MODEL SWITCH** line. The run summary lists every model used.
-- Pick a model yourself: `--model gemini-3-flash-preview` or `FRONTDESK_MODEL=...` in `.env`.
+- Default with a Gemini key: `gemini-3.5-flash-lite`. The header shows the whole chain, e.g.
+  `AI chain: gemini-3.5-flash-lite → groq:qwen/qwen3.8-27b → groq:openai/gpt-oss-120b → …`.
+- **Groq is the backup.** Put `GROQ_API_KEY` in `.env`. When Gemini times out, is busy, rate-limits for more than
+  3 s, returns a network error twice, rejects the key or runs out of daily quota, that call moves to the next model
+  and a yellow **MODEL SWITCH** line says why and whether it is "for this call" (temporary) or "for the rest of the
+  run" (quota, bad key, retired model). Models whose provider has no key are skipped.
+- Change the order with `FRONTDESK_MODEL_FALLBACKS`, or pick a model with `--model groq:openai/gpt-oss-120b`.
+- A free Groq key allows only about 8,000 tokens per minute per model, roughly one full message per minute; the
+  chain then moves to the next Groq model. Measured on 2026-10-21: Groq calls about 0.2-1.5 s each.
+
+### Time limits (so nothing hangs)
+
+- Each AI call: `FRONTDESK_CALL_TIMEOUT_S` (default 8 s). Each message overall: `FRONTDESK_MESSAGE_DEADLINE_S`
+  (default 20 s). A rate-limit wait longer than `FRONTDESK_MAX_RETRY_WAIT_S` (default 3 s) switches model instead.
+- If the deadline is reached, a yellow line says so and the message continues **without AI**, marked `degraded`:
+  - an emergency already found is never downgraded; a possible red flag the AI did not clear is escalated;
+  - any clinical message goes to a clinician the same day (`clinician_urgent`), never treated as routine;
+  - if the AI had already booked/cancelled/prepared a refill, nothing is redone: the message goes to the front desk.
 
 ### Spending and token alerts
 
@@ -116,4 +129,5 @@ The latest full sample run is also copied to `runs/latest/` and `results.json` a
 | Yellow **MODEL SWITCH** | One model ran out of quota; another took over | Nothing; check the summary for which models ran |
 | Red **ALERT: model calls stopped** | All models exhausted, key rejected, or budget cap reached | Wait for the daily reset, use a paid key, or raise the cap |
 | Many `[degraded]` messages | The AI was unavailable for those messages | See the alert; rerun later |
-| `429` retries / slow progress | Per-minute limit; the app waits and retries | Lower `FRONTDESK_MAX_RPM` |
+| `… retrying in N s` | A short rate-limit or network wait | Nothing; longer waits switch model |
+| `deadline reached; continuing without AI` | No AI answer within 20 s | Check the switch lines above it; raise `FRONTDESK_MESSAGE_DEADLINE_S` for batch runs if needed |

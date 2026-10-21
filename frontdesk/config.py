@@ -30,23 +30,42 @@ PRICING: dict[str, dict[str, float]] = {
     "gemini-3.5-flash-lite": {"input": 0.30, "output": 2.50, "cache_read": 0.03, "cache_write": 0.0},
     "gemini-3.1-flash-lite": {"input": 0.25, "output": 1.50, "cache_read": 0.025, "cache_write": 0.0},
     "gemini-3.8-flash": {"input": 0.75, "output": 3.75, "cache_read": 0.075, "cache_write": 0.0},
+    # Groq: console.groq.com/docs/models, checked 2026-10-21.
+    "groq:qwen/qwen3.8-27b": {"input": 0.80, "output": 4.00, "cache_read": 0.80, "cache_write": 0.0},
+    "groq:openai/gpt-oss-120b": {"input": 0.15, "output": 0.60, "cache_read": 0.15, "cache_write": 0.0},
+    "groq:openai/gpt-oss-20b": {"input": 0.075, "output": 0.30, "cache_read": 0.075, "cache_write": 0.0},
 }
+
+
+def provider_of(model: str) -> str:
+    if model.startswith("groq:"):
+        return "groq"
+    return "gemini" if model.startswith("gemini") else "anthropic"
+
+
+def _has(*names: str) -> bool:
+    return any(os.getenv(n) for n in names)
 
 
 def _default_model() -> str:
     if os.getenv("FRONTDESK_MODEL"):
         return os.environ["FRONTDESK_MODEL"]
-    has_gemini = bool(os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
-    has_anthropic = bool(os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN"))
-    return "gemini-3.5-flash-lite" if has_gemini and not has_anthropic else "claude-opus-5-5"
+    has_anthropic = _has("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
+    if _has("GEMINI_API_KEY", "GOOGLE_API_KEY") and not has_anthropic:
+        return "gemini-3.5-flash-lite"
+    if _has("GROQ_API_KEY") and not has_anthropic:
+        return "groq:qwen/qwen3.8-27b"
+    return "claude-opus-5-5"
 
 
 def _fallbacks() -> list[str]:
     raw = os.getenv("FRONTDESK_MODEL_FALLBACKS")
     if raw is not None:
         return [m.strip() for m in raw.split(",") if m.strip()]
-    return ["gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-2.5-flash"] \
-        if _default_model().startswith("gemini") else []
+    if provider_of(_default_model()) == "anthropic":
+        return []
+    # Groq first: it is the fast backup when Gemini is slow or failing; then other Gemini models.
+    return ["groq:qwen/qwen3.8-27b", "groq:openai/gpt-oss-120b", "gemini-3-flash-preview", "gemini-2.5-flash"]
 
 
 def _num(name: str, default: float | None) -> float | None:
@@ -64,6 +83,9 @@ class Settings:
     max_cost_usd: float | None = field(default_factory=lambda: _num("FRONTDESK_MAX_COST_USD", 2.0))
     max_tokens: int | None = field(default_factory=lambda: int(_num("FRONTDESK_MAX_TOKENS", 0) or 0) or None)
     max_rpm: float | None = field(default_factory=lambda: _num("FRONTDESK_MAX_RPM", None))
+    call_timeout_s: float = field(default_factory=lambda: _num("FRONTDESK_CALL_TIMEOUT_S", 8.0) or 8.0)
+    max_retry_wait_s: float = field(default_factory=lambda: _num("FRONTDESK_MAX_RETRY_WAIT_S", 3.0) or 0.0)
+    message_deadline_s: float | None = field(default_factory=lambda: _num("FRONTDESK_MESSAGE_DEADLINE_S", 20.0))
     prefetch_concurrency: int = field(default_factory=lambda: int(_num("FRONTDESK_CONCURRENCY", 4) or 4))
     understand_effort: str = field(default_factory=lambda: os.getenv("FRONTDESK_UNDERSTAND_EFFORT", "low"))
     agent_effort: str = field(default_factory=lambda: os.getenv("FRONTDESK_AGENT_EFFORT", "medium"))
@@ -72,7 +94,7 @@ class Settings:
 
     @property
     def provider(self) -> str:
-        return "gemini" if self.model.startswith("gemini") else "anthropic"
+        return provider_of(self.model)
 
     @property
     def labels_path(self) -> Path:

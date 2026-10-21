@@ -56,6 +56,7 @@ def test_gemini_replays_model_turn_and_names_tool_results(gemini):
         id="c1", name="get_clinic_info", args={}))])
     prior = Content([type("B", (), {"type": "tool_use", "id": "c1", "name": "get_clinic_info"})()])
     prior.raw = model_turn
+    prior.provider = "gemini"
     contents = gemini._contents([
         {"role": "user", "content": "hello"},
         {"role": "assistant", "content": prior},
@@ -110,7 +111,7 @@ def _llm(script, fallbacks=(), **kw):
 
 
 def test_quota_exhaustion_alerts_once_and_blocks_later_calls():
-    llm, sink = _llm([_resp(), LLMStopped("Gemini quota exhausted: daily limit")], max_cost_usd=None)
+    llm, sink = _llm([_resp(), ModelUnavailable("Gemini daily quota exhausted for gemini-2.5-flash")], max_cost_usd=None)
     asyncio.run(llm.create("M1", "understand", messages=[]))
     with pytest.raises(LLMStopped):
         asyncio.run(llm.create("M2", "understand", messages=[]))
@@ -172,9 +173,10 @@ def test_per_minute_429_waits_and_retries(gemini, monkeypatch):
 
     async def fake_sleep(s):
         slept.append(s)
+    gemini.max_wait = 10.0
     monkeypatch.setattr(gemini.client.aio.models, "generate_content", flaky)
     monkeypatch.setattr("frontdesk.llm.asyncio.sleep", fake_sleep)
-    r = asyncio.run(gemini.create(model="gemini-2.5-flash", messages=[{"role": "user", "content": "hi"}]))
+    r = asyncio.run(gemini.create(timeout_s=8, model="gemini-2.5-flash", messages=[{"role": "user", "content": "hi"}]))
     assert calls["n"] == 2 and slept == [6.0] and r.content[0].text == "hi"
 
 
@@ -188,5 +190,5 @@ def test_daily_quota_429_is_not_retried(gemini, monkeypatch):
                                                  "limit: 250, quotaId: GenerateRequestsPerDayPerProjectPerModel"}})
     monkeypatch.setattr(gemini.client.aio.models, "generate_content", boom)
     with pytest.raises(LLMStopped):
-        asyncio.run(gemini.create(model="gemini-2.5-flash", messages=[{"role": "user", "content": "hi"}]))
+        asyncio.run(gemini.create(timeout_s=8, model="gemini-2.5-flash", messages=[{"role": "user", "content": "hi"}]))
     assert calls["n"] == 1

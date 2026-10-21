@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
+import time
 import shutil
 from dataclasses import dataclass
 from datetime import datetime
@@ -18,11 +18,12 @@ from typing import Any, Callable
 from frontdesk.config import ROOT, Settings
 from frontdesk.data import ClinicData, Message
 from frontdesk.events import EventBus, JsonlSink, Stopwatch
-from frontdesk.llm import LLM
+from frontdesk.llm import LLM, PROVIDER_KEYS, has_key
 from frontdesk.pipeline import MessageResult, Pipeline
 from frontdesk.policy.identity import identify
 from frontdesk.safety import keyword_gate
 from frontdesk.tools.client import Ledger, ToolClient
+
 
 class ConfigError(RuntimeError):
     pass
@@ -39,12 +40,9 @@ class RunOutput:
 def check_llm_ready(settings: Settings) -> None:
     if settings.mode != "llm":
         return
-    if settings.provider == "gemini":
-        if not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")):
-            raise ConfigError(f"Model {settings.model} needs GEMINI_API_KEY (put it in .env). "
-                              "To run without an API key use: --mode rules")
-    elif not (os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN")):
-        raise ConfigError(f"Model {settings.model} needs ANTHROPIC_API_KEY (put it in .env). "
+    if not has_key(settings.provider):
+        needed = " or ".join(PROVIDER_KEYS[settings.provider])
+        raise ConfigError(f"Model {settings.model} needs {needed} (put it in .env). "
                           "To run without an API key use: --mode rules")
 
 
@@ -66,6 +64,7 @@ async def run_messages(settings: Settings, messages: list[Message], out_dir: Pat
     results: list[dict[str, Any]] = []
     traces: dict[str, dict[str, Any]] = {}
     bus.emit("run.started", None, mode=settings.mode, model=settings.model if llm else None,
+             chain=list(llm.models) if llm else [], deadline_s=settings.message_deadline_s if llm else None,
              transport=settings.transport, messages=len(messages), out_dir=str(out_dir))
     try:
         async with ToolClient(settings, bus, data) as tools:
@@ -76,15 +75,17 @@ async def run_messages(settings: Settings, messages: list[Message], out_dir: Pat
 
                 async def pre(m: Message):
                     async with sem:
+                        t0 = time.monotonic()
                         ident = identify(data.patients, m.from_contact, m.from_name, m.stated_dob, m.body)
-                        return await pipe.understand(m, ident)
+                        return await pipe.understand(m, ident), time.monotonic() - t0
 
                 prefetch = {m.id: asyncio.create_task(pre(m)) for m in messages
                             if keyword_gate(m.body).level != "emergency"}
             for m in messages:
-                pre_und = await prefetch[m.id] if m.id in prefetch else None
+                pre_und, spent = await prefetch[m.id] if m.id in prefetch else (None, 0.0)
                 try:
-                    mr: MessageResult = await pipe.process(m, pre_und)
+                    # In a batch, understanding ran ahead in parallel; only a live single message waits for it.
+                    mr: MessageResult = await pipe.process(m, pre_und, spent if len(messages) == 1 else 0.0)
                 except Exception as e:  # never lose the whole run to one message
                     bus.emit("message.failed", m.id, error=repr(e)[:500])
                     mr = MessageResult({"id": m.id, "patient_id": None, "intents": [], "urgency": "urgent",
@@ -105,6 +106,8 @@ async def run_messages(settings: Settings, messages: list[Message], out_dir: Pat
             "llm_stopped": llm.stopped if llm else None,
             "model_switches": llm.switches if llm else [],
             "models_used": sorted({e.data["model"] for e in usage_events}) if llm else [],
+            "model_chain": list(llm.models) if llm else [],
+            "latency_by_model": _latency_by_model(usage_events),
             "finished_at": datetime.now().isoformat(timespec="seconds")}
     _write(out_dir / "results.json", results)
     _write(out_dir / "trace_summary.json", traces)
@@ -119,6 +122,13 @@ async def run_messages(settings: Settings, messages: list[Message], out_dir: Pat
     bus.emit("run.finished", None, **meta)
     sink.close()
     return RunOutput(out_dir, results, traces, meta)
+
+
+def _latency_by_model(usage_events: list) -> dict[str, dict[str, float]]:
+    out: dict[str, list[float]] = {}
+    for e in usage_events:
+        out.setdefault(e.data["model"], []).append(e.data.get("latency_ms") or 0)
+    return {m: {"calls": len(v), "mean_ms": round(sum(v) / len(v)), "max_ms": round(max(v))} for m, v in out.items()}
 
 
 def _write(path: Path, obj: Any) -> None:

@@ -72,7 +72,8 @@ message ─► 1 Identify sender (code, MCP find_patient)
 | **Policy lives in the tools**, not the prompt | A prompt can be argued with; `prepare_refill_request` re-checks all five refill rules, and there is no approve tool at all. Bookings are re-validated against hours, lunch, holidays, leave, overlaps and the :00/:20/:40 grid. |
 | **The LLM never sees or chooses a patient id** | `find_patient` opens a per-message context. PHI tools get its id injected by the client, and unverified senders are not offered PHI tools at all. Prompt injection cannot reach another patient's record. |
 | **Actions are computed from tool results**, not from what the LLM says | `prepare_refill_for_approval` is emitted only if `prepare_refill_request` succeeded. A claimed slot offer is checked against slots a tool actually returned. |
-| **Two-part safety gate** | Keywords run before any LLM call: instant, free, and still working if the API is down. The LLM's judgement catches what keywords miss (Spanish, symptoms with no numbers). Either one escalates. An idiom ("dying to get in") is cleared only by an explicit LLM all-clear. |
+| **Two-part safety gate** | Keywords run before any LLM call: instant, free, and still working if the API is down. The LLM's judgement catches what keywords miss (Spanish, symptoms with no numbers). Either one escalates. A red flag inside a figure of speech ("dying to get in"), a negation, a past event, a question or a quote is deferred and cleared only by an explicit LLM all-clear; if the LLM fails it escalates. |
+| **Provider chain + deadlines** | Gemini first, Groq as the backup (same tools, same Python rules). Each call has a timeout and each message a 20 s deadline; a slow or failing model is skipped for that call, an exhausted one for the run. Past the deadline the message continues without AI, with clinical messages routed to a clinician the same day. |
 | **Templates for anything clinical or transactional** | Emergency and clinical wording is never generated. The LLM drafts only answers to general questions, and the validator rejects any date, time, price or phone number not found in the tool facts. |
 | **Proportional processing** | Spam, thanks, third parties and unverified senders never reach the agent. An hours question costs one tool call. |
 | **Mandatory follow-ups in code** | If the agent forgets a policy-required step (e.g. routing a controlled-substance refill to the prescriber), code performs it through the same MCP tool, and the trace records `by: code`. |
@@ -155,8 +156,15 @@ to 95.5%, with no increase in unsafe actions (0 `must_not` violations, 0 over-es
 
 ### Known weaknesses
 
-- **The red-flag keyword list is English-centric** and was written by an engineer, not a clinician. The LLM covers
-  the gap, but in degraded/rules mode a non-English emergency can be missed (held-out H002).
+- **The deterministic safety rules are not clinical coverage.** They were written by an engineer from public
+  red-flag guidance (heart attack and stroke warning signs, breathing, anaphylaxis, hypoglycaemia without numbers,
+  seizures, unconsciousness, overdose, dangerous bleeding, explicit self-harm, common Spanish phrases and spelling
+  variants), are not clinically reviewed, and are tested only on synthetic messages (`tests/test_safety_probes.py`:
+  48 emergency and 20 non-emergency phrasings). Any wording they do not anticipate depends on the LLM.
+- **Context handling is heuristic.** A red-flag phrase that is negated right before it ("no chest pain"), historical
+  ("history of stroke", "in 2019"), an information question ("signs of a stroke?") or quoted is not escalated
+  instantly but deferred to the LLM; if the LLM is unavailable it escalates. Unusual phrasing can still produce a
+  false alarm or rely on the LLM to catch a real emergency.
 - **Rules-mode understanding is brittle** on new phrasing ("resurtir", "update my address").
 - **Slot choice is "earliest valid".** It does not consider provider language match (e.g. a Spanish-speaking NP
   for a Spanish-preferring patient), and an `inproc` run processes messages sequentially by arrival time.
