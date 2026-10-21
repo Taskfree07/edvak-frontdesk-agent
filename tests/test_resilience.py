@@ -103,6 +103,17 @@ def test_deadline_caps_the_per_call_timeout_and_stops_further_attempts():
     assert [e for e in sink.events if e.type == "llm.deadline"]
 
 
+def test_own_pacing_queue_does_not_consume_the_message_deadline():
+    llm, be, _ = make_llm([G], {G: [ok(G), ok(G), ok(G)]}, max_rpm=60.0)   # 1 s between calls
+
+    async def go():
+        with message_deadline(1.5):                               # ~2 s of queueing would exceed it if counted
+            for p in ("a", "b", "c"):
+                await llm.create("M1", p, messages=[])
+    asyncio.run(go())
+    assert len(be.calls) == 3
+
+
 def test_malformed_understanding_degrades_to_rules_with_clinical_routed_urgently(settings, data):
     """Two invalid JSON answers: the message is processed without AI, marked degraded, and a clinical message is
     not treated as routine."""

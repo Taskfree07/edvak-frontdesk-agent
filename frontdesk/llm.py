@@ -598,6 +598,10 @@ class LLM:
             self._next_slot = max(now, self._next_slot) + self._min_interval
         if wait > 0:
             await asyncio.sleep(wait)
+            # Our own pacing queue (FRONTDESK_MAX_RPM) is not provider slowness: it does not use up the deadline.
+            d = _deadline.get()
+            if d is not None:
+                _deadline.set(d + wait)
 
     async def create(self, message_id: str | None, purpose: str, **kwargs: Any) -> Response:
         if self.stopped:
