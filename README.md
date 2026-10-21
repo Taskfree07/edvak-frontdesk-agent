@@ -59,9 +59,9 @@ cost, timings) and `eval_report.md/.json`. The latest full sample run is mirrore
 ```
 message ─► 1 Identify sender (code, MCP find_patient)
         ─► 2 Safety gate A: red-flag patterns (code) ──── emergency ──► fixed 911 reply, clinician_urgent, stop
-        ─► 3 Understand (Claude, structured JSON output)
-        ─► 2 Safety gate B: + Claude's clinical concern (either signal escalates)
-        ─► 4 Act (Claude chooses MCP tools; policy enforced INSIDE the tools; ends with submit_resolution)
+        ─► 3 Understand (LLM, structured JSON output)
+        ─► 2 Safety gate B: + the LLM's clinical concern (either signal escalates)
+        ─► 4 Act (LLM chooses MCP tools; policy enforced INSIDE the tools; ends with submit_resolution)
         ─► 5 Enforce mandatory follow-ups (code) ─► derive actions FROM TOOL RESULTS (code)
         ─► 6 Reply: templates (EN/ES) or grounded draft ─► validator (code) ─► draft_reply (outbox, never sent)
         ─► result JSON + event trace ─► evaluation harness
@@ -72,11 +72,11 @@ message ─► 1 Identify sender (code, MCP find_patient)
 | **Policy lives in the tools**, not the prompt | A prompt can be argued with; `prepare_refill_request` re-checks all five refill rules, and there is no approve tool at all. Bookings are re-validated against hours, lunch, holidays, leave, overlaps and the :00/:20/:40 grid. |
 | **The LLM never sees or chooses a patient id** | `find_patient` opens a per-message context. PHI tools get its id injected by the client, and unverified senders are not offered PHI tools at all. Prompt injection cannot reach another patient's record. |
 | **Actions are computed from tool results**, not from what the LLM says | `prepare_refill_for_approval` is emitted only if `prepare_refill_request` succeeded. A claimed slot offer is checked against slots a tool actually returned. |
-| **Two-part safety gate** | Keywords run before any LLM call: instant, free, and still working if the API is down. Claude's judgement catches what keywords miss (Spanish, symptoms with no numbers). Either one escalates. An idiom ("dying to get in") is cleared only by an explicit LLM all-clear. |
+| **Two-part safety gate** | Keywords run before any LLM call: instant, free, and still working if the API is down. The LLM's judgement catches what keywords miss (Spanish, symptoms with no numbers). Either one escalates. An idiom ("dying to get in") is cleared only by an explicit LLM all-clear. |
 | **Templates for anything clinical or transactional** | Emergency and clinical wording is never generated. The LLM drafts only answers to general questions, and the validator rejects any date, time, price or phone number not found in the tool facts. |
 | **Proportional processing** | Spam, thanks, third parties and unverified senders never reach the agent. An hours question costs one tool call. |
 | **Mandatory follow-ups in code** | If the agent forgets a policy-required step (e.g. routing a controlled-substance refill to the prescriber), code performs it through the same MCP tool, and the trace records `by: code`. |
-| **Graceful degradation** | If a Claude call fails for one message, that message falls back to the rules path, is marked `degraded`, and the run continues. |
+| **Graceful degradation** | If an LLM call fails for one message, that message falls back to the rules path, is marked `degraded`, and the run continues. If the AI had already booked or changed something, nothing is redone: the message goes to the front desk. |
 | **Event stream** | Every stage emits typed events. The terminal renders them now, and the planned web UI will consume the same stream without changes to the pipeline. |
 
 ## What I reused vs built
@@ -84,7 +84,8 @@ message ─► 1 Identify sender (code, MCP find_patient)
 **Reused:** the official **MCP Python SDK** (server + in-process/stdio client), the **Anthropic Python SDK**
 (Messages API, structured outputs, tool use, prompt caching, server-side refusal fallback), **pydantic**, **rich**
 (terminal UI) and **pytest**. No agent framework: the tool loop is about 60 lines, so every call can be logged,
-context-injected and policy-checked. Claude Code was used as a pair-programmer while building.
+context-injected and policy-checked. Claude Code (an AI coding assistant) was used heavily while building: it drafted much of the code, the held-out set and its labels. The design, the safety and policy behaviour and the evaluation results were
+reviewed by me; the code is covered by offline tests.
 
 **Built:** the clinic policy engine (refill rules, slot validation, calendar, identity, medication-name matching),
 the 14-tool MCP server, the safety gate, the understander and agent prompts and schemas, the rules baseline,
@@ -99,28 +100,31 @@ and the tests.
 Two evaluation sets:
 
 1. **The 40 labelled sample messages.**
-2. **A held-out set of 22 new messages** (`eval_sets/heldout/`). I wrote and labelled them from `clinic.json`
-   policy **after** the system was built, and never used them for tuning. They include emergencies with no obvious
+2. **A held-out set of 22 new messages** (`eval_sets/heldout/`). They were written and labelled (with an AI coding
+   assistant) from `clinic.json` policy **after** the system was built, and never used for tuning. Because the
+   expected answers were AI-drafted, treat this set as a generalisation check, not ground truth. They include emergencies with no obvious
    keywords (a Spanish allergic reaction, low blood sugar with no number, stroke signs from a non-patient), new
    injection wording, a brand-name refill, name+DOB verification, a verified patient asking about someone else,
    and leave/holiday scheduling.
 
-| Metric | Rules · sample | Rules · held-out | LLM · sample | LLM · held-out |
-|---|---|---|---|---|
-| **Emergency recall** | **100% (5/5)** | **50% (2/4)** | _run `frontdesk run`_ | _see below_ |
-| **must_not violations** | **0** | **0** | | |
-| Over-escalations | 0 | 0 | | |
-| Urgency accuracy | 97.5% | 90.9% | | |
-| Action exact-match | 95.0% | 50.0% | | |
-| Action micro F1 | 97.9% | 56.0% | | |
-| Patient-id accuracy | 100% | 100% | | |
-| Schedule integrity problems | 0 | 0 | | |
-| Cost | $0 | $0 | | |
+LLM runs: `gemini-3.5-flash-lite`, 2026-10-21, one run each (free-tier key, paced at 12 requests/minute).
 
-> **LLM columns:** this environment had no `ANTHROPIC_API_KEY` while I was writing this, so the Claude runs still
-> need to be done. They are one command each (`frontdesk run` and the held-out command above). Every LLM code
-> path (understander, tool loop, submit_resolution, context injection, refusal handling, degradation) is covered
-> by tests against a scripted fake model. Fill these columns from `runs/latest/eval_report.md` after the first run.
+| Metric | Rules · sample | Rules · held-out | **LLM · sample** | **LLM · held-out** |
+|---|---|---|---|---|
+| **Emergency recall** | **100% (5/5)** | **50% (2/4)** | **100% (5/5)** | **100% (4/4)** |
+| **must_not violations** | **0** | **0** | **0** | **0** |
+| Over-escalations | 0 | 0 | 0 | 0 |
+| Urgency accuracy | 97.5% | 90.9% | 95.0% | 100% |
+| Action exact-match | 95.0% | 50.0% | 85.0% | 95.5% |
+| Action micro F1 | 97.9% | 56.0% | 94.0% | 98.1% |
+| Patient-id accuracy | 100% | 100% | 100% | 100% |
+| Schedule integrity problems | 0 | 0 | 0 | 0 |
+| Messages degraded to rules | – | – | 0 | 0 |
+| LLM calls per message | 0 | 0 | 3.1 | 3.0 |
+| Cost per run (paid-tier prices) | $0 | $0 | $0.17 | $0.09 |
+
+**Headline:** on unseen messages the LLM lifts emergency recall from 2/4 to 4/4 and exact-match actions from 50%
+to 95.5%, with no increase in unsafe actions (0 `must_not` violations, 0 over-escalations in both modes).
 
 ### What the numbers mean, honestly
 
@@ -134,6 +138,12 @@ Two evaluation sets:
     label inconsistency* instead of hiding it (M026, the same situation, does include the routing).
   - **M019 (rules mode):** "pain is still bad" makes the keyword understander mark the message urgent and route
     it to a clinician as well as the provider. That is over-cautious, not unsafe.
+- **What the LLM gets wrong (sample: 6 of 40 not exact; held-out: 1 of 22):** apart from M004 above, every miss is
+  the same kind: the LLM judges a message more clinically urgent than the label and adds a same-day clinician
+  route on top of the correct action (M005 "ran out early" on a controlled drug, M015 child's fever, M019
+  post-surgery pain, M026 out of an antidepressant, M039 UTI symptoms, H015). These add human attention; none
+  removes a required action or performs a forbidden one. Tightening this is prompt work on the `urgent_same_day`
+  definition, measured against both sets so it does not cost emergency recall.
 - **Judgement calls, documented:**
   - **M022:** Hannah has *two* appointments tomorrow and says "something came up", so both are cancelled and
     listed in the reply.
@@ -153,21 +163,24 @@ Two evaluation sets:
 
 ## Model choice and cost
 
-- **Default model `claude-opus-5-5`** for all three LLM roles. Effort is set per role: `low` for understanding,
-  `medium` for the tool loop, `low` for drafting. Thinking is adaptive. The model is configurable
-  (`--model` / `FRONTDESK_MODEL`, e.g. `claude-sonnet-5-5`, `claude-haiku-5-5`) and pricing for all three is in
-  `config.py`.
-- **Calls per message:** emergencies caught by keywords use **0** LLM calls. Simple messages use 1 (understand).
-  Actionable ones use 1 + about 2–4 agent turns. Understanding calls are prefetched concurrently (6 at a time);
-  acting is sequential because bookings change the schedule.
-- **Estimated cost per 40-message run:** about 0.5M input + 0.1M output tokens, so **about $3–5 on Opus 5.5
-  (about $0.10 per message)**, about $1–2 on Sonnet 5.5, and well under $0.25 on Haiku 5.5. The exact number is
-  measured on every run and printed by `frontdesk eval`.
+- **Provider:** one provider layer (`frontdesk/llm.py`) serves Gemini (`google-genai`) or Claude (`anthropic`).
+  The rest of the pipeline does not know which is behind it.
+- **Default model `gemini-3.5-flash-lite`** (chosen after testing tool calling and JSON output on the available
+  Gemini models). If its daily quota runs out, the run switches to the next model in `FRONTDESK_MODEL_FALLBACKS`
+  and says so; when all are exhausted, or the `FRONTDESK_MAX_COST_USD` / `FRONTDESK_MAX_TOKENS` cap is hit, it
+  raises a red alert, stops calling the model and finishes the run in rules mode (marked `degraded`).
+- **Calls per message (measured):** about 3 on average. Emergencies caught by keywords use **0**. Simple messages
+  use 1 (understand). Actionable ones use 1 + about 2–4 agent turns.
+- **Measured cost:** 40-message sample run: 123 calls, 303k input + 32k output tokens = **$0.17 at paid-tier
+  prices (about $0.004 per message)**. Held-out run: $0.09. A free-tier key is not charged but is rate-limited
+  (about 15 requests/minute and a small daily quota per model), which is why the measured run took 14 minutes;
+  latency figures in the reports include that deliberate pacing.
+- Claude is supported (`--model claude-sonnet-5-5` with `ANTHROPIC_API_KEY`) but was not run for these results.
 
 ## What I'd do with another week
 
-1. Run Claude on both sets **3–5 times** and report mean ± range (`--repeat`). LLM outputs vary, and one run is
-   anecdote.
+1. Run both sets **3–5 times** and report mean ± range (`--repeat`). LLM outputs vary, and one run is anecdote;
+   the results above are single runs because of free-tier quotas.
 2. Get a **clinician-reviewed, multilingual red-flag list**, plus a tiny fast classifier as a third safety signal.
 3. **Grow the held-out set to around 200 messages** with a second labeller, measure inter-rater agreement, and
    track a confusion matrix per action.
@@ -175,7 +188,7 @@ Two evaluation sets:
    human approve/edit of every draft before it can be sent.
 5. A smarter slot choice (language match, continuity, patient's stated constraints), and a reply-back flow so
    offered slots can be confirmed.
-6. Model/effort sweep: Haiku/Sonnet for understanding and Opus only for the agent turns, to cut cost per message
+6. Model/effort sweep: a cheaper model for understanding and a stronger one only for the agent turns, to cut cost per message
    while holding the safety metrics.
 
 ## Before this touches real patient data
@@ -199,11 +212,11 @@ Two evaluation sets:
 frontdesk/
   policy/        refill.py scheduling.py calendar.py identity.py medications.py   (pure rules, unit-tested)
   tools/         service.py (all tools) · mcp_server.py (MCP) · client.py (MCP client + ledger + context injection)
-  understand/    llm.py (Claude structured output) · rules.py + dates.py (baseline) · schema.py
-  act/           llm_agent.py (Claude tool loop) · rule_agent.py (baseline) · resolution.py
+  understand/    llm.py (LLM structured output) · rules.py + dates.py (baseline) · schema.py
+  act/           llm_agent.py (LLM tool loop) · rule_agent.py (baseline) · resolution.py
   safety.py  outcome.py  reply/ (templates, compose, validate)  pipeline.py  runner.py  events.py  render.py  cli.py
   eval/harness.py
 eval_sets/heldout/   22 held-out messages + labels
-tests/               59 tests (policy, identity, safety, MCP tools, pipeline, validator, harness, LLM loop with a fake model)
+tests/               offline tests (policy, identity, safety, MCP tools, pipeline, validator, harness, LLM loop with a fake model)
 edvak_forge_data/    the provided data (synthetic)
 ```
