@@ -130,6 +130,33 @@ def test_cost_budget_stops_the_run():
         asyncio.run(llm.create("M3", "x", messages=[]))
 
 
+def test_per_minute_429_waits_and_retries(gemini, monkeypatch):
+    calls = {"n": 0}
+    ok = types.GenerateContentResponse(candidates=[types.Candidate(
+        finish_reason=types.FinishReason.STOP, content=types.Content(role="model", parts=[types.Part(text="hi")]))])
+
+    async def flaky(**_):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise errors.ClientError(429, {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED",
+                                                     "message": "You exceeded your current quota, please check your "
+                                                                "plan and billing details.",
+                                                     "details": [
+                {"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": [
+                    {"quotaId": "GenerateRequestsPerMinutePerProjectPerModel-FreeTier", "quotaValue": "5"}]},
+                {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "5s"}]}})
+        return ok
+
+    slept: list[float] = []
+
+    async def fake_sleep(s):
+        slept.append(s)
+    monkeypatch.setattr(gemini.client.aio.models, "generate_content", flaky)
+    monkeypatch.setattr("frontdesk.llm.asyncio.sleep", fake_sleep)
+    r = asyncio.run(gemini.create(model="gemini-2.5-flash", messages=[{"role": "user", "content": "hi"}]))
+    assert calls["n"] == 2 and slept == [6.0] and r.content[0].text == "hi"
+
+
 def test_daily_quota_429_is_not_retried(gemini, monkeypatch):
     calls = {"n": 0}
 

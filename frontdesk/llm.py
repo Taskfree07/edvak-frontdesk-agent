@@ -114,9 +114,21 @@ def _json_schema(schema: dict[str, Any]) -> dict[str, Any]:
     return walk(schema)
 
 
-def _is_daily_quota(text: str) -> bool:
+def _quota_ids(details: Any) -> list[str]:
+    """quotaId values from a Gemini RESOURCE_EXHAUSTED error, e.g. GenerateRequestsPerMinutePerProjectPerModel."""
+    ids: list[str] = []
+    for d in ((details or {}).get("error", {}) or {}).get("details", []) or []:
+        for v in d.get("violations", []) or []:
+            if v.get("quotaId"):
+                ids.append(v["quotaId"])
+    return ids
+
+
+def _is_daily_quota(quota_ids: list[str], text: str) -> bool:
+    if quota_ids:
+        return any("PerDay" in q for q in quota_ids) and not any("PerMinute" in q for q in quota_ids)
     t = text.lower()
-    return "perday" in t or "per day" in t or "daily" in t or "limit: 0" in t or "billing" in t
+    return "perday" in t or "per day" in t or "daily" in t
 
 
 def _retry_delay_s(err: Any, attempt: int) -> float:
@@ -205,8 +217,10 @@ class GeminiBackend:
             except e_mod.APIError as e:
                 text = f"{e.status} {e.message} {e.details}"
                 if e.code == 429:
-                    if _is_daily_quota(text):
-                        raise LLMStopped(f"Gemini quota exhausted: {str(e.message)[:250]}") from e
+                    ids = _quota_ids(e.details)
+                    if _is_daily_quota(ids, text):
+                        raise LLMStopped(f"Gemini daily quota exhausted ({', '.join(ids) or 'per-day limit'}). "
+                                         "It resets daily; or use a paid key.") from e
                     if attempt < MAX_RATE_LIMIT_RETRIES:
                         await asyncio.sleep(_retry_delay_s(text, attempt))
                         continue

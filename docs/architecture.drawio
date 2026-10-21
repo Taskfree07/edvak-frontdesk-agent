@@ -1,0 +1,181 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="arch" name="High-level architecture">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="&lt;b&gt;Maplewood front-desk agent: high-level architecture&lt;/b&gt;&lt;br&gt;AI handles language and tool choice · Python enforces the rules · MCP is the tool interface · the eval harness measures it" style="text;html=1;align=left;verticalAlign=middle;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1100" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Inbox -->
+        <mxCell id="inbox" value="&lt;b&gt;Incoming messages&lt;/b&gt;&lt;br&gt;SMS · portal · email&lt;br&gt;(messages_sample.json or one live message)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="180" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Pipeline background -->
+        <mxCell id="pipe" value="&lt;b&gt;Pipeline: one message at a time&lt;/b&gt; (only the steps a message needs run; safety check and validator always run)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;verticalAlign=top;align=left;spacingLeft=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="90" width="1060" height="150" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s1" value="&lt;b&gt;1. Identify sender&lt;/b&gt;&lt;br&gt;Python&lt;br&gt;phone/email on file, name + DOB, authorised caregiver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="130" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2" value="&lt;b&gt;2. Safety check&lt;/b&gt;&lt;br&gt;Python red-flag keywords, then the AI's opinion added after step 3. Either can escalate." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="480" y="130" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="&lt;b&gt;3. Understand&lt;/b&gt;&lt;br&gt;AI → structured JSON: intents, medication, dates, provider, urgency, language, suspicious instruction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="690" y="130" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4" value="&lt;b&gt;4. Act&lt;/b&gt;&lt;br&gt;AI picks tools (only those relevant to the intents). Python then adds any step the policy requires." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="900" y="130" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="s5" value="&lt;b&gt;5. Reply + validate&lt;/b&gt;&lt;br&gt;Templates filled from tool results (AI drafts only general answers). Python validator checks everything." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="130" width="180" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e_in" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="inbox" target="s1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e23" value="not an emergency" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;fontSize=10;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e34" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e45" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="s4" target="s5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Emergency path -->
+        <mxCell id="emerg" value="&lt;b&gt;EMERGENCY path&lt;/b&gt;&lt;br&gt;Stop routine work. Route to clinician_urgent.&lt;br&gt;Fixed reply: call 911 / nearest ED, clinic alerted. No AI wording." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="450" y="290" width="240" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2e" value="emergency" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#b85450;fontColor=#b85450;fontSize=10;strokeWidth=2;" edge="1" parent="1" source="s2" target="emerg">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- AI provider + fallback -->
+        <mxCell id="ai" value="&lt;b&gt;AI model&lt;/b&gt; (Gemini or Claude) via one provider layer&lt;br&gt;counts calls · tokens · cost · latency per message&lt;br&gt;alerts and stops on quota / budget / bad key" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="720" y="290" width="330" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3ai" style="html=1;endArrow=none;dashed=1;strokeColor=#9673a6;" edge="1" parent="1" source="s3" target="ai">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4ai" style="html=1;endArrow=none;dashed=1;strokeColor=#9673a6;" edge="1" parent="1" source="s4" target="ai">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="fallback" value="&lt;b&gt;Rules fallback (no AI)&lt;/b&gt;&lt;br&gt;Used when the AI is unavailable or the quota/budget is hit. Message marked &quot;degraded&quot;." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="290" width="230" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="eaif" value="if AI fails" style="html=1;endArrow=block;dashed=1;strokeColor=#666666;fontSize=10;" edge="1" parent="1" source="ai" target="fallback">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- MCP tools + data -->
+        <mxCell id="mcp" value="&lt;b&gt;MCP tool server&lt;/b&gt;: clinic rules are enforced inside the tools&lt;br&gt;find_patient · get_medications · check_refill_eligibility · prepare_refill_request (never approve) · get_patient_appointments · find_open_slots · check_slot · book / reschedule / cancel_appointment · get_clinic_info · route_to_queue · draft_reply&lt;br&gt;&lt;i&gt;No approve-refill tool exists. Health data refused for unverified senders. No double-booking, lunch, holiday or leave bookings.&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;" vertex="1" parent="1">
+          <mxGeometry x="640" y="430" width="490" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4mcp" value="tool calls" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;fontSize=10;exitX=1;exitY=0.75;entryX=1;entryY=0.25;" edge="1" parent="1" source="s4" target="mcp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1090" y="198"/>
+              <mxPoint x="1090" y="262"/>
+              <mxPoint x="1150" y="262"/>
+              <mxPoint x="1150" y="463"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e1mcp" value="find_patient" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;fontSize=10;entryX=0;entryY=0.5;" edge="1" parent="1" source="s1" target="mcp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="360" y="495"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="data" value="&lt;b&gt;Clinic data&lt;/b&gt; (JSON loaded in memory, reset every run)&lt;br&gt;clinic.json policies · patients · medications · appointments" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;size=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="720" y="610" width="330" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="emcpd" style="html=1;endArrow=block;startArrow=block;" edge="1" parent="1" source="mcp" target="data">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Outputs -->
+        <mxCell id="queues" value="&lt;b&gt;Human queues: human in the loop&lt;/b&gt;&lt;br&gt;clinician_urgent · clinician_routine · provider_refills · front_desk · billing&lt;br&gt;Clinicians approve refills, handle clinical &amp;amp; crisis conversations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="90" width="250" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="draft" value="&lt;b&gt;Reply draft&lt;/b&gt;&lt;br&gt;saved, never auto-sent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="220" width="250" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="results" value="&lt;b&gt;results.json + per-step trace&lt;/b&gt;&lt;br&gt;id · patient_id · intents · urgency · actions · routed_to · tool_calls · reply_draft" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="295" width="250" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5d" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="s5" target="draft">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5r" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="s5" target="results">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="emq" value="route_to_queue" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#d79b00;fontColor=#d79b00;fontSize=10;exitX=1;exitY=0.75;entryX=0;entryY=0.25;" edge="1" parent="1" source="mcp" target="queues">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1330" y="528"/>
+              <mxPoint x="1330" y="118"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eeq" value="alert" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;strokeColor=#b85450;fontColor=#b85450;fontSize=10;strokeWidth=2;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="emerg" target="queues">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="270"/>
+              <mxPoint x="440" y="270"/>
+              <mxPoint x="440" y="75"/>
+              <mxPoint x="1485" y="75"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Evaluation -->
+        <mxCell id="labels" value="&lt;b&gt;Expected answers&lt;/b&gt;&lt;br&gt;labels_sample.json (40) · held-out set (22)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="620" width="250" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="eval" value="&lt;b&gt;Evaluation harness&lt;/b&gt;&lt;br&gt;emergency recall + every miss · must_not violations · action accuracy · urgency accuracy · fallback rate · cost &amp;amp; latency" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="420" width="250" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="ere" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="results" target="eval">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ele" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="labels" target="eval">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="lg" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="120" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg1" value="Python (deterministic rules)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="455" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg2" value="AI (language + tool choice)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="495" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg3" value="Safety / emergency" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="535" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg4" value="Humans (human in the loop)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="575" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg5" value="Data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="615" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg6" value="Measurement" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="655" width="200" height="30" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

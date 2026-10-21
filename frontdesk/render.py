@@ -31,8 +31,8 @@ class TerminalRenderer:
             self.c.print(f"[dim]MCP connected ({ev.data['transport']}): {', '.join(ev.data['tools'])}[/]")
             return
         if ev.type == "llm.stopped":
-            self.c.print(Panel(f"{ev.data['reason']}\n\nNo more model calls will be made in this run. The remaining "
-                               "messages are processed by the rules fallback and marked [degraded].",
+            self.c.print(Panel(Text(f"{ev.data['reason']}\n\nNo more model calls will be made in this run. The "
+                                    "remaining messages are processed by the rules fallback and marked [degraded]."),
                                title="[bold]ALERT: model calls stopped[/]", border_style="bold red"))
             return
         if ev.type == "run.finished":
@@ -43,8 +43,8 @@ class TerminalRenderer:
                         f"cost ${llm.get('cost_usd', 0):.4f} (≈ ${llm.get('cost_usd', 0) / n:.4f}/message) · "
                         f"degraded {len(ev.data.get('degraded_messages', []))}")
             if ev.data.get("llm_stopped"):
-                self.c.print(f"[bold white on red] ALERT [/] model calls stopped during this run: "
-                             f"{ev.data['llm_stopped']}")
+                self.c.print(Text.assemble((" ALERT ", "bold white on red"),
+                                           f" model calls stopped during this run: {ev.data['llm_stopped']}"))
             return
         if ev.message_id is None:
             return
@@ -157,8 +157,8 @@ def print_eval(console: Console, rep: Any) -> None:
     t.add_row("Cost (est., paid-tier prices)", f"${(s.get('cost_usd') or 0):.4f}")
     console.print(t)
     if s.get("llm_stopped"):
-        console.print(f"[bold white on red] ALERT [/] model calls stopped during the run, later messages used the "
-                      f"rules fallback: {s['llm_stopped']}")
+        console.print(Text.assemble((" ALERT ", "bold white on red"), " model calls stopped during the run, later "
+                                    f"messages used the rules fallback: {s['llm_stopped']}"))
     for m in rep.emergency_misses:
         console.print(f"[bold red]MISSED EMERGENCY[/] {m['id']}: {m}")
     for v in rep.must_not_violations:
