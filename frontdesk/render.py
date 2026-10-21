@@ -30,6 +30,10 @@ class TerminalRenderer:
         if ev.type == "mcp.connected":
             self.c.print(f"[dim]MCP connected ({ev.data['transport']}): {', '.join(ev.data['tools'])}[/]")
             return
+        if ev.type == "llm.model_switched":
+            self.c.print(Text.assemble((" MODEL SWITCH ", "bold black on yellow"),
+                                       f" {ev.data['from_model']} → {ev.data['to_model']}: {ev.data['reason']}"))
+            return
         if ev.type == "llm.stopped":
             self.c.print(Panel(Text(f"{ev.data['reason']}\n\nNo more model calls will be made in this run. The "
                                     "remaining messages are processed by the rules fallback and marked [degraded]."),
@@ -149,7 +153,8 @@ def print_eval(console: Console, rep: Any) -> None:
     t.add_row("Validator interventions", str(s["validator_interventions"]))
     t.add_row("Suspected label inconsistencies", str(s["suspected_label_inconsistencies"]))
     t.add_row("Schedule integrity problems", str(s["schedule_integrity_problems"]))
-    t.add_row("Degraded messages", str(s["degraded_messages"]))
+    t.add_row("Degraded messages (rules fallback)", str(s["degraded_messages"]))
+    t.add_row("  ...AI stopped part-way (human finishes)", str(s.get("partial_ai_fallbacks", 0)))
     t.add_row("Latency p50 / p95", f"{s['latency_ms_p50']} / {s['latency_ms_p95']} ms")
     t.add_row("LLM calls · tokens", f"{s.get('llm_calls') or 0} · {s.get('total_tokens') or 0:,}")
     t.add_row("Per message: calls / tokens / cost", f"{s.get('calls_per_message') or 0} / "

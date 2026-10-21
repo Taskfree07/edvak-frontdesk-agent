@@ -5,9 +5,11 @@ An AI agent that works a clinic inbox. It reads each message, works out who sent
 code**, and hands everything risky to a human. It never answers an emergency itself. An **evaluation harness**
 measures how well it does, including every failure.
 
-> **The LLM proposes; Python disposes.** Claude handles language and chooses tools. Python enforces every rule.
-> MCP is the tool interface. The eval harness tells us how well it works.
+> **The LLM proposes; Python disposes.** The AI model (Gemini or Claude) handles language and chooses tools.
+> Python enforces every rule. MCP is the tool interface. The eval harness tells us how well it works.
 
+- **How to run and test (full guide):** [`docs/how-to-run.md`](docs/how-to-run.md)
+- Architecture diagram (open in draw.io): [`docs/architecture.drawio`](docs/architecture.drawio)
 - System design (how it is built): [`docs/design/2026-10-21-system-design.md`](docs/design/2026-10-21-system-design.md)
 - Intent and decisions (why): [`docs/design/2026-10-21-front-desk-agent-design.md`](docs/design/2026-10-21-front-desk-agent-design.md)
 
@@ -18,11 +20,12 @@ measures how well it does, including every failure.
 ```bash
 python -m venv .venv && . .venv/Scripts/activate        # Windows (Git Bash); on macOS/Linux: . .venv/bin/activate
 pip install -e ".[dev]"
-cp .env.example .env                                     # then put your ANTHROPIC_API_KEY in .env
+# unzip edvak_forge_data.zip into ./edvak_forge_data (not committed)
+cp .env.example .env                                     # then put GEMINI_API_KEY (or ANTHROPIC_API_KEY) in .env
 
-frontdesk run                 # process the 40 sample messages with Claude, then evaluate
-frontdesk run --mode rules    # same pipeline, no LLM, no API key (offline baseline / fallback)
-pytest                        # 59 tests, no network needed
+frontdesk run                 # process the 40 sample messages with the AI, then evaluate
+frontdesk run --mode rules    # same pipeline, no AI, no API key (offline baseline / fallback)
+pytest                        # offline tests, no network needed
 ```
 
 Live, on a message nobody has seen:

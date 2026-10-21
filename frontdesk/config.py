@@ -28,6 +28,7 @@ PRICING: dict[str, dict[str, float]] = {
     "gemini-2.5-pro": {"input": 1.25, "output": 10.00, "cache_read": 0.125, "cache_write": 0.0},
     "gemini-3-flash-preview": {"input": 0.50, "output": 3.00, "cache_read": 0.05, "cache_write": 0.0},
     "gemini-3.5-flash-lite": {"input": 0.30, "output": 2.50, "cache_read": 0.03, "cache_write": 0.0},
+    "gemini-3.1-flash-lite": {"input": 0.25, "output": 1.50, "cache_read": 0.025, "cache_write": 0.0},
     "gemini-3.8-flash": {"input": 0.75, "output": 3.75, "cache_read": 0.075, "cache_write": 0.0},
 }
 
@@ -37,7 +38,15 @@ def _default_model() -> str:
         return os.environ["FRONTDESK_MODEL"]
     has_gemini = bool(os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
     has_anthropic = bool(os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN"))
-    return "gemini-2.5-flash" if has_gemini and not has_anthropic else "claude-opus-5-5"
+    return "gemini-3.5-flash-lite" if has_gemini and not has_anthropic else "claude-opus-5-5"
+
+
+def _fallbacks() -> list[str]:
+    raw = os.getenv("FRONTDESK_MODEL_FALLBACKS")
+    if raw is not None:
+        return [m.strip() for m in raw.split(",") if m.strip()]
+    return ["gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-2.5-flash"] \
+        if _default_model().startswith("gemini") else []
 
 
 def _num(name: str, default: float | None) -> float | None:
@@ -51,6 +60,7 @@ class Settings:
     mode: Mode = field(default_factory=lambda: os.getenv("FRONTDESK_MODE", "llm"))  # type: ignore[arg-type]
     transport: Transport = field(default_factory=lambda: os.getenv("FRONTDESK_TRANSPORT", "inproc"))  # type: ignore[arg-type]
     model: str = field(default_factory=_default_model)
+    model_fallbacks: list[str] = field(default_factory=_fallbacks)
     max_cost_usd: float | None = field(default_factory=lambda: _num("FRONTDESK_MAX_COST_USD", 2.0))
     max_tokens: int | None = field(default_factory=lambda: int(_num("FRONTDESK_MAX_TOKENS", 0) or 0) or None)
     max_rpm: float | None = field(default_factory=lambda: _num("FRONTDESK_MAX_RPM", None))

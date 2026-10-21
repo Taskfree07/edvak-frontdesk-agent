@@ -57,6 +57,8 @@ async def run_messages(settings: Settings, messages: list[Message], out_dir: Pat
     bus = EventBus()
     sink = JsonlSink(out_dir / "traces.jsonl")
     bus.subscribe(sink)
+    usage_events: list = []
+    bus.subscribe(lambda ev: usage_events.append(ev) if ev.type == "llm.usage" else None)
     for s in subscribers or []:
         bus.subscribe(s)
     sw = Stopwatch()
@@ -101,6 +103,8 @@ async def run_messages(settings: Settings, messages: list[Message], out_dir: Pat
             "llm": {k: (round(v, 4) if isinstance(v, float) else v) for k, v in (llm.totals if llm else {}).items()},
             "degraded_messages": [k for k, t in traces.items() if t.get("degraded")],
             "llm_stopped": llm.stopped if llm else None,
+            "model_switches": llm.switches if llm else [],
+            "models_used": sorted({e.data["model"] for e in usage_events}) if llm else [],
             "finished_at": datetime.now().isoformat(timespec="seconds")}
     _write(out_dir / "results.json", results)
     _write(out_dir / "trace_summary.json", traces)

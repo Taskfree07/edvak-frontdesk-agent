@@ -9,7 +9,7 @@ from google.genai import errors, types
 
 from frontdesk.config import Settings
 from frontdesk.events import EventBus, ListSink
-from frontdesk.llm import LLM, Content, GeminiBackend, LLMStopped, Response
+from frontdesk.llm import LLM, Content, GeminiBackend, LLMStopped, ModelUnavailable, Response
 
 
 @pytest.fixture
@@ -90,7 +90,7 @@ def _resp(inp=1000, out=100):
                                             "cache_creation_input_tokens": 0}, "gemini-2.5-flash")
 
 
-def _llm(script, **kw):
+def _llm(script, fallbacks=(), **kw):
     bus = EventBus()
     sink = ListSink()
     bus.subscribe(sink)
@@ -101,6 +101,8 @@ def _llm(script, **kw):
     llm.totals = {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0,
                   "cache_creation_input_tokens": 0, "cost_usd": 0.0, "calls": 0}
     llm.stopped = None
+    llm.models = ["gemini-2.5-flash", *fallbacks]
+    llm.switches = []
     llm._min_interval = 0.0
     llm._next_slot = 0.0
     llm._lock = asyncio.Lock()
@@ -117,6 +119,25 @@ def test_quota_exhaustion_alerts_once_and_blocks_later_calls():
     stops = [e for e in sink.events if e.type == "llm.stopped"]
     assert len(stops) == 1 and "quota" in stops[0].data["reason"]
     assert llm.totals["calls"] == 1
+
+
+def test_exhausted_model_switches_to_next_in_chain_then_stops_when_chain_is_empty():
+    llm, sink = _llm([ModelUnavailable("daily quota exhausted for gemini-2.5-flash"), _resp(),
+                      ModelUnavailable("daily quota exhausted for gemini-3.5-flash-lite")],
+                     fallbacks=["gemini-3.5-flash-lite"], max_cost_usd=None)
+    asyncio.run(llm.create("M1", "understand", messages=[]))           # retried on the next model
+    assert llm.models == ["gemini-3.5-flash-lite"] and llm.stopped is None
+    assert [e.data["to_model"] for e in sink.events if e.type == "llm.model_switched"] == ["gemini-3.5-flash-lite"]
+    with pytest.raises(LLMStopped):
+        asyncio.run(llm.create("M2", "understand", messages=[]))
+    assert llm.stopped and "gemini-3.5-flash-lite" in llm.stopped
+
+
+def test_fallback_chain_never_crosses_providers(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    s = Settings(model="claude-opus-5-5", model_fallbacks=["gemini-3.5-flash-lite", "claude-sonnet-5-5"])
+    llm = LLM(s, EventBus())
+    assert llm.models == ["claude-opus-5-5", "claude-sonnet-5-5"]
 
 
 def test_cost_budget_stops_the_run():

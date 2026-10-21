@@ -37,7 +37,10 @@ class FakeLLM:
 
     async def create(self, message_id, purpose, **kwargs):
         self.calls.append({"purpose": purpose, **kwargs})
-        return self.script.pop(0)
+        item = self.script.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item(kwargs) if callable(item) else item
 
     text_of = staticmethod(LLM.text_of)
 
@@ -96,6 +99,39 @@ def test_understander_parses_structured_output(data):
     sent = fake.calls[0]
     assert "<message" in sent["messages"][0]["content"]          # body passed as quoted data
     assert sent["output_config"]["format"]["type"] == "json_schema"
+
+
+def test_ai_failure_after_booking_is_not_redone_by_fallback(settings, data):
+    """The AI books, then the model stops. The rules fallback must not book again; a human finishes the job."""
+    from frontdesk.llm import LLMStopped
+    und = Understanding(intents=["schedule"], provider="PATEL", visit_type="follow_up", urgency="routine")
+
+    def book_first_slot(kwargs):
+        slots = json.loads(kwargs["messages"][-1]["content"][0]["content"])["slots"]
+        return resp(tool_use(2, "book_appointment", {"slot_id": slots[0]["slot_id"]}))
+    fake = FakeLLM([
+        NS(content=[NS(type="text", text=und.model_dump_json())], stop_reason="end_turn",
+           usage=NS(input_tokens=1, output_tokens=1)),
+        resp(tool_use(1, "find_open_slots", {"date_from": "2026-11-17", "date_to": "2026-11-17",
+                                             "visit_type": "follow_up", "provider": "PATEL",
+                                             "part_of_day": "morning"})),
+        book_first_slot,
+        LLMStopped("Gemini daily quota exhausted"),
+    ])
+    msg = load_messages(settings.messages_path)[9]                  # M010: follow-up with Dr. Patel
+    assert msg.id == "M010"
+
+    async def go():
+        async with ToolClient(settings, EventBus(), data) as tc:
+            pipe = Pipeline(Settings(mode="llm"), EventBus(), tc, data, fake)  # type: ignore[arg-type]
+            mr = await pipe.process(msg)
+            return mr, tc.service
+    mr, svc = asyncio.run(go())
+    bookings = [a for a in svc.state.appointments if a.patient_id == "P013" and a.date.isoformat() == "2026-11-17"]
+    assert len(bookings) == 1                                        # booked once, not again by the fallback
+    assert mr.trace["degraded"] and mr.trace["ai_actions_before_fallback"] == ["book_appointment"]
+    assert "book_appointment" in mr.result["actions"] and "route_to_front_desk" in mr.result["actions"]
+    assert [c for c in mr.result["tool_calls"] if c == "book_appointment"] == ["book_appointment"]
 
 
 def test_llm_concern_escalates_message_keywords_missed(settings, data):

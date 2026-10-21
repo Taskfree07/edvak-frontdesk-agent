@@ -27,6 +27,7 @@ from frontdesk.understand.rules import RulesUnderstander
 from frontdesk.understand.schema import Understanding
 
 URGENCY_RANK = {"routine": 0, "urgent": 1, "emergency": 2}
+STATE_CHANGING_TOOLS = {"prepare_refill_request", "book_appointment", "reschedule_appointment", "cancel_appointment"}
 
 
 @dataclass
@@ -64,7 +65,8 @@ class Pipeline:
         total = Stopwatch()
         mid = msg.id
         ledger = Ledger(mid)
-        trace: dict[str, Any] = {"mode": self.settings.mode, "degraded": False, "errors": []}
+        trace: dict[str, Any] = {"mode": self.settings.mode, "degraded": False, "errors": [],
+                                 "ai_actions_before_fallback": []}
         self.bus.emit("message.received", mid, stage="intake", channel=msg.channel, from_name=msg.from_name,
                       from_contact=msg.from_contact, body=msg.body, received_at=msg.received_at.isoformat())
 
@@ -189,7 +191,16 @@ class Pipeline:
             except LLMError as e:
                 trace["degraded"] = True
                 trace["errors"].append(f"act: {e}")
-                self.bus.emit("agent.degraded", msg.id, stage="act", error=str(e))
+                done = [c.name for c in ledger.calls if c.by == "llm" and c.ok and c.name in STATE_CHANGING_TOOLS]
+                trace["ai_actions_before_fallback"] = done
+                self.bus.emit("agent.degraded", msg.id, stage="act", error=str(e), ai_actions_before_fallback=done)
+                if done:
+                    # The rules fallback must not redo or contradict work the AI already completed.
+                    await self.tools.call(ledger, "route_to_queue", {
+                        "queue": "front_desk",
+                        "reason": f"AI stopped part-way after completing {', '.join(done)}; please review and finish."},
+                        by="code")
+                    return None
         return await self.rule_agent.act(msg, identity, und, ledger, facts, urgent)
 
     async def _fail_safe(self, ledger: Ledger, identity: Identity, lang: str, outcome: Outcome,

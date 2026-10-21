@@ -146,7 +146,8 @@ def evaluate(results: list[dict[str, Any]], labels: dict[str, Label], data: Clin
                     "intents_ok": gi == ei, "expected": sorted(exp), "got": sorted(got),
                     "missing_actions": sorted(exp - got), "extra_actions": sorted(got - exp),
                     "urgency": r.get("urgency"), "accepted_urgency": lab.accepted_urgency,
-                    "degraded": bool(tr.get("degraded")), "duration_ms": tr.get("duration_ms")})
+                    "degraded": bool(tr.get("degraded")), "duration_ms": tr.get("duration_ms"),
+                    "ai_actions_before_fallback": tr.get("ai_actions_before_fallback") or []})
 
     p, rcl, f1 = _prf(tp, fp, fn)
     em_total = sum(1 for l in labels.values() if "escalate_emergency" in l.expected_actions)
@@ -169,6 +170,7 @@ def evaluate(results: list[dict[str, Any]], labels: dict[str, Label], data: Clin
         "suspected_label_inconsistencies": len(inconsist),
         "schedule_integrity_problems": len(integrity),
         "degraded_messages": sum(1 for x in per if x.get("degraded")),
+        "partial_ai_fallbacks": sum(1 for x in per if x.get("ai_actions_before_fallback")),
         "latency_ms_p50": round(statistics.median(durations), 1) if durations else None,
         "latency_ms_p95": round(sorted(durations)[max(0, int(len(durations) * 0.95) - 1)], 1) if durations else None,
         "mode": (meta or {}).get("mode"), "model": (meta or {}).get("model"),
@@ -284,6 +286,8 @@ def to_markdown(rep: EvalReport) -> str:
         f"| Validator interventions | {s['validator_interventions']} |",
         f"| Schedule integrity problems | {s['schedule_integrity_problems']} |",
         f"| Degraded (LLM fallback) messages | {s['degraded_messages']} |",
+        f"| ...of which the AI had already changed something (sent to front desk, not redone) | "
+        f"{s['partial_ai_fallbacks']} |",
         f"| Latency p50 / p95 | {s['latency_ms_p50']} ms / {s['latency_ms_p95']} ms |",
         f"| LLM calls · tokens in/out (cache read) | {s.get('llm_calls') or 0} · {s.get('input_tokens') or 0}/"
         f"{s.get('output_tokens') or 0} ({s.get('cache_read_tokens') or 0}) |",

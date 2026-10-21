@@ -32,6 +32,11 @@ class LLMStopped(LLMError):
     """No further model calls will be made this run: quota exhausted, budget reached or credentials invalid."""
 
 
+class ModelUnavailable(LLMStopped):
+    """This model cannot serve requests now (daily quota used up, retired, or overloaded after retries).
+    Another model in the fallback chain may still work."""
+
+
 @dataclass
 class Block:
     type: str
@@ -219,8 +224,9 @@ class GeminiBackend:
                 if e.code == 429:
                     ids = _quota_ids(e.details)
                     if _is_daily_quota(ids, text):
-                        raise LLMStopped(f"Gemini daily quota exhausted ({', '.join(ids) or 'per-day limit'}). "
-                                         "It resets daily; or use a paid key.") from e
+                        raise ModelUnavailable(f"Gemini daily quota exhausted for {model} "
+                                             f"({', '.join(ids) or 'per-day limit'}). It resets daily; "
+                                             "or use a paid key.") from e
                     if attempt < MAX_RATE_LIMIT_RETRIES:
                         await asyncio.sleep(_retry_delay_s(text, attempt))
                         continue
@@ -230,9 +236,11 @@ class GeminiBackend:
                     raise LLMStopped(f"Gemini rejected the API key ({e.code}): {str(e.message)[:200]}") from e
                 if e.code == 400:
                     raise SchemaRejected(f"Gemini rejected the request: {str(e.message)[:300]}") from e
-                if e.code >= 500 and attempt < 2:
-                    await asyncio.sleep(2.0 * (attempt + 1))
+                if e.code >= 500 and attempt < 3:
+                    await asyncio.sleep(3.0 * (attempt + 1))
                     continue
+                if e.code == 404 or e.code >= 500:
+                    raise ModelUnavailable(f"Gemini model {model} unavailable ({e.code}): {str(e.message)[:200]}") from e
                 raise LLMError(f"Gemini API error {e.code}: {str(e.message)[:300]}") from e
             except Exception as e:  # network / SDK errors
                 raise LLMError(f"Cannot reach the Gemini API: {e!r}"[:300]) from e
@@ -277,6 +285,10 @@ class LLM:
         self.totals: dict[str, float] = {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0,
                                          "cache_creation_input_tokens": 0, "cost_usd": 0.0, "calls": 0}
         self.stopped: str | None = None
+        same_provider = [m for m in settings.model_fallbacks
+                         if m != settings.model and m.startswith("gemini") == (settings.provider == "gemini")]
+        self.models: list[str] = [settings.model] + same_provider
+        self.switches: list[dict[str, str]] = []
         self._min_interval = 60.0 / settings.max_rpm if settings.max_rpm else 0.0
         self._next_slot = 0.0
         self._lock = asyncio.Lock()
@@ -299,14 +311,25 @@ class LLM:
     async def create(self, message_id: str | None, purpose: str, **kwargs: Any) -> Response:
         if self.stopped:
             raise LLMStopped(self.stopped)
-        kwargs.setdefault("model", self.settings.model)
-        await self._throttle()
-        sw = Stopwatch()
-        try:
-            resp = await self.backend.create(**kwargs)
-        except LLMStopped as e:
-            self._stop(str(e))
-            raise
+        while True:
+            kwargs["model"] = self.models[0]
+            await self._throttle()
+            sw = Stopwatch()
+            try:
+                resp = await self.backend.create(**kwargs)
+                break
+            except ModelUnavailable as e:
+                if len(self.models) > 1:
+                    old = self.models.pop(0)
+                    self.switches.append({"from": old, "to": self.models[0], "reason": str(e)})
+                    self.bus.emit("llm.model_switched", None, from_model=old, to_model=self.models[0],
+                                  reason=str(e), during_message=message_id)
+                    continue
+                self._stop(str(e))
+                raise
+            except LLMStopped as e:
+                self._stop(str(e))
+                raise
         cost = price_usd(kwargs["model"], resp.usage)
         for k, v in resp.usage.items():
             self.totals[k] += v
