@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "frontdesk"
+version = "1.0.0"
+description = "Maplewood front-desk inbox agent: MCP clinic tools, Claude agent, policy enforcement and evaluation harness"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic[mcp]==1.17.0",
+    "google-genai==2.32.0",
+    "mcp==2.3.0",
+    "pydantic>=2.8",
+    "rich>=13.7",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+frontdesk = "frontdesk.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["frontdesk*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

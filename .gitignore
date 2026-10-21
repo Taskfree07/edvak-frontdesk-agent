@@ -1,0 +1,22 @@
+# Python / tooling
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+
+# Secrets: only the template is committed
+.env
+.env.*
+!.env.example
+
+# Clinic data supplied by Edvak (synthetic, but shared confidentially with candidates).
+# Unzip edvak_forge_data.zip into edvak_forge_data/ to run.
+edvak_forge_data/
+*.zip
+*.pdf
+
+# Generated run artefacts: traces, tool results and reply drafts contain patient records
+runs/
+results.json
