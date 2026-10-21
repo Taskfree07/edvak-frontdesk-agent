@@ -136,8 +136,9 @@ Two evaluation sets:
     listed in the reply.
   - **`patient_id`:** this is the patient the message is *about* (the labels expect this for M011 and M027), even
     when the sender is unverified. Verification status is recorded separately in the trace.
-  - **M006:** low mood without explicit intent → same-day `clinician_urgent` routing plus a 988/911 safety line,
-    and the eligible refill is still prepared. Explicit or imminent self-harm wording escalates as an emergency.
+  - **M006:** low mood without explicit intent → same-day `clinician_urgent` routing; the reply only says a
+    clinician will contact them today (any crisis conversation is left to that human), and the eligible refill is
+    still prepared. Explicit or imminent self-harm wording escalates as an emergency.
 
 ### Known weaknesses
 

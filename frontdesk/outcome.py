@@ -4,7 +4,6 @@ found slots it chose to offer), and even then it is checked against the ledger."
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
@@ -201,7 +200,7 @@ def derive(identity: Identity, safety: SafetyResult, und: Understanding | None, 
             add(QUEUE_ACTION[q])
             route(q)
             if q != "provider_refills":
-                items.append(ReplyItem("routed", {"queue": q, "mood": q == "clinician_urgent" and _mood(safety, und)}))
+                items.append(ReplyItem("routed", {"queue": q}))
 
     # Answers to general questions: grounded in get_clinic_info.
     answered = "answered" in outcomes or (und and und.question and set(intents) & {"admin", "other"})
@@ -239,11 +238,3 @@ def _notes(ledger: Ledger) -> list[str]:
     for c in ledger.of("find_open_slots", ok=True):
         notes += [n for n in c.result.get("notes", []) if n not in notes]
     return notes
-
-
-MOOD = re.compile(r"mood|depress|hopeless|self-?harm|suicid|don'?t see the point|low", re.I)
-
-
-def _mood(safety: SafetyResult, und: Understanding | None) -> bool:
-    return any("mood" in h or "self-harm" in h for h in safety.urgent_hits) or bool(
-        und and und.concern_summary and MOOD.search(und.concern_summary))

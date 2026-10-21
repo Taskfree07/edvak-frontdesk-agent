@@ -112,7 +112,7 @@ async def compose(items: list[ReplyItem], name: str | None, lang: str, llm: LLM 
             sections.append(s)
         elif it.kind == "routed":
             if d["queue"] == "clinician_urgent":
-                sections.append(t["routed_urgent"] + (" " + t["mood_safety"] if d.get("mood") else ""))
+                sections.append(t["routed_urgent"])
             else:
                 sections.append(t["routed"].format(queue=QUEUE_NAMES[lang].get(d["queue"], d["queue"])))
         elif it.kind == "verification":

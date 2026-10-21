@@ -412,8 +412,9 @@ Multi-intent messages **compose** template sections (greeting + one section per 
 wording therefore never comes from an LLM. This is a deliberate tightening of the intent document. Templates exist in
 English and Spanish. The language is the message language, falling back to `preferred_language`.
 
-- Same-day clinician routing for low mood adds a fixed safety line (988 Suicide & Crisis Lifeline / 911). This is
-  signposting, not advice.
+- Same-day clinician routing for low mood uses the plain `routed_urgent` template ("a clinician will contact you
+  today"). No crisis-line wording is generated: the author's decision is that the clinician handles that
+  conversation.
 - Scheduling refusals are rewritten into patient-friendly reasons ("Dr. Okafor is away Monday, November 16 - Friday,
   November 20", "that time is already booked"). Other patients' details never appear.
 - Alternatives are ranked by closeness to the request: same provider first (requested day, then the following

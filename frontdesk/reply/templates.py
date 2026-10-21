@@ -42,8 +42,6 @@ T: dict[str, dict[str, str]] = {
                              "help you register.",
         "routed": "We've passed your message to {queue}, who will get back to you.",
         "routed_urgent": "We've asked one of our clinicians to contact you today.",
-        "mood_safety": ("If you ever feel unsafe or have thoughts of harming yourself, please call or text 988 "
-                        "(Suicide & Crisis Lifeline) or call 911 right away."),
         "verification": ("To protect your privacy we need to verify your identity before we can help with this. "
                          "Please reply from the phone number or email we have on file, or send your full name and "
                          "date of birth."),
@@ -76,8 +74,6 @@ T: dict[str, dict[str, str]] = {
                              "con el registro.",
         "routed": "Hemos enviado su mensaje a {queue}, que se pondrá en contacto con usted.",
         "routed_urgent": "Hemos pedido a uno de nuestros profesionales clínicos que se comunique con usted hoy.",
-        "mood_safety": ("Si en algún momento se siente en peligro o piensa en hacerse daño, llame o envíe un "
-                        "mensaje al 988 (Línea de Crisis y Suicidio) o llame al 911 de inmediato."),
         "verification": ("Para proteger su privacidad necesitamos verificar su identidad antes de poder ayudarle. "
                          "Responda desde el teléfono o correo que tenemos registrado, o envíe su nombre completo y "
                          "fecha de nacimiento."),
