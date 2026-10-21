@@ -9,6 +9,7 @@ measures how well it does, including every failure.
 > Python enforces every rule. MCP is the tool interface. The eval harness tells us how well it works.
 
 - **How to run and test (full guide):** [`docs/how-to-run.md`](docs/how-to-run.md)
+- **Before/after of the safety, deadline and Groq changes:** [`docs/results-before-after.md`](docs/results-before-after.md)
 - Architecture diagram (open in draw.io): [`docs/architecture.drawio`](docs/architecture.drawio)
 - System design (how it is built): [`docs/design/2026-10-21-system-design.md`](docs/design/2026-10-21-system-design.md)
 - Intent and decisions (why): [`docs/design/2026-10-21-front-desk-agent-design.md`](docs/design/2026-10-21-front-desk-agent-design.md)
