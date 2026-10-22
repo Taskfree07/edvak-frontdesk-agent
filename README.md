@@ -5,9 +5,12 @@ An AI agent that works a clinic inbox. It reads each message, works out who sent
 code**, and hands everything risky to a human. It never answers an emergency itself. An **evaluation harness**
 measures how well it does, including every failure.
 
-> **The LLM proposes; Python disposes.** The AI model (Gemini or Claude) handles language and chooses tools.
-> Python enforces every rule. MCP is the tool interface. The eval harness tells us how well it works.
+> **The LLM proposes; Python disposes.** The AI model (Gemini, with Groq as backup) handles language and chooses
+> tools. Python enforces every rule. MCP is the tool interface. The eval harness tells us how well it works.
 
+![How it works](docs/images/workflow-how-it-works.png)
+
+- **How it works (plain explanation, modules, guardrails, interview Q&A):** [`docs/how-it-works.md`](docs/how-it-works.md)
 - **How to run and test (full guide):** [`docs/how-to-run.md`](docs/how-to-run.md)
 - **Before/after of the safety, deadline and Groq changes:** [`docs/results-before-after.md`](docs/results-before-after.md)
 - Architecture diagram (open in draw.io): [`docs/architecture.drawio`](docs/architecture.drawio)
