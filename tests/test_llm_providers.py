@@ -104,6 +104,7 @@ def _llm(script, fallbacks=(), **kw):
     llm.stopped = None
     llm.models = ["gemini-2.5-flash", *fallbacks]
     llm.switches = []
+    llm._cooling = {}
     llm._min_interval = 0.0
     llm._next_slot = 0.0
     llm._lock = asyncio.Lock()

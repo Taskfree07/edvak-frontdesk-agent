@@ -63,6 +63,7 @@ def test_timeout_moves_this_call_to_groq_and_keeps_gemini_for_later():
     asyncio.run(llm.create("M1", "understand", messages=[]))
     assert [c[0] for c in be.calls] == [G, Q]
     assert llm.models == [G, Q]                                    # transient: Gemini stays in the chain
+    llm._cooling[G] = 0                                            # once its cool-down has passed
     asyncio.run(llm.create("M2", "understand", messages=[]))
     assert be.calls[-1][0] == G
     sw = [e for e in sink.events if e.type == "llm.model_switched"]
@@ -230,3 +231,14 @@ def test_groq_network_error_is_retried_once_then_reported(monkeypatch):
     with pytest.raises(ModelUnavailable) as e:
         asyncio.run(g.create(timeout_s=5, model="groq:qwen/qwen3.8-27b", messages=[{"role": "user", "content": "x"}]))
     assert calls["n"] == 2 and e.value.permanent is False and time.monotonic() - t0 < 5
+
+
+def test_slow_model_cools_down_so_later_calls_go_straight_to_the_backup():
+    llm, be, _ = make_llm([G, Q], {G: [ModelUnavailable("timed out", permanent=False), ok(G)],
+                                   Q: [ok(Q), ok(Q)]})
+    asyncio.run(llm.create("M1", "a", messages=[]))
+    asyncio.run(llm.create("M1", "b", messages=[]))           # Gemini is cooling down: not tried first
+    assert [c[0] for c in be.calls] == [G, Q, Q]
+    llm._cooling[G] = 0                                       # cool-down over: Gemini is first again
+    asyncio.run(llm.create("M2", "c", messages=[]))
+    assert be.calls[-1][0] == G

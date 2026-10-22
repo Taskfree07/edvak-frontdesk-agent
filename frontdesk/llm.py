@@ -546,6 +546,9 @@ def has_key(provider: str) -> bool:
 
 
 # ------------------------------------------------------------------------------------------------ facade
+COOLDOWN_S = 30.0   # after a timeout/overload, try the other models first for this long
+
+
 class LLM:
     def __init__(self, settings: Settings, bus: EventBus):
         self.settings = settings
@@ -562,6 +565,7 @@ class LLM:
                                          "cache_creation_input_tokens": 0, "cost_usd": 0.0, "calls": 0}
         self.stopped: str | None = None
         self.switches: list[dict[str, str]] = []
+        self._cooling: dict[str, float] = {}   # model -> monotonic time until which it is skipped
         self._min_interval = 60.0 / settings.max_rpm if settings.max_rpm else 0.0
         self._next_slot = 0.0
         self._lock = asyncio.Lock()
@@ -608,7 +612,11 @@ class LLM:
             raise LLMStopped(self.stopped)
         await self._throttle()
         last: Exception | None = None
-        for model in list(self.models):
+        now = time.monotonic()
+        ready = [m for m in self.models if self._cooling.get(m, 0) <= now]
+        cooling = [m for m in self.models if m not in ready]
+        order = ready + cooling           # cooling models are a last resort, not skipped outright
+        for i, model in enumerate(order):
             remaining = _remaining()
             if remaining is not None and remaining <= 0.5:
                 self.bus.emit("llm.deadline", message_id, purpose=purpose,
@@ -626,10 +634,11 @@ class LLM:
                 resp = await self._backend_for(model).create(timeout_s=timeout_s, **kwargs)
             except ModelUnavailable as e:
                 last = e
-                nxt = next((m for m in self.models if m != model and self.models.index(m) > self.models.index(model)),
-                           None)
+                nxt = order[i + 1] if i + 1 < len(order) else None
                 if e.permanent:
                     self.models.remove(model)
+                else:
+                    self._cooling[model] = time.monotonic() + COOLDOWN_S
                 self.switches.append({"from": model, "to": nxt or "-", "reason": str(e),
                                       "permanent": str(e.permanent)})
                 self.bus.emit("llm.model_switched", None, from_model=model, to_model=nxt, reason=str(e),
