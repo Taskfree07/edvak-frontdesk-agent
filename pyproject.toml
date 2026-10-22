@@ -25,6 +25,9 @@ frontdesk = "frontdesk.cli:main"
 [tool.setuptools.packages.find]
 include = ["frontdesk*"]
 
+[tool.setuptools.package-data]
+frontdesk = ["web/static/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

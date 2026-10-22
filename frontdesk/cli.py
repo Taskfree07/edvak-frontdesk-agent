@@ -122,6 +122,12 @@ def cmd_serve(_: argparse.Namespace, __: Console) -> int:
     return 0
 
 
+def cmd_ui(a: argparse.Namespace, __: Console) -> int:
+    from frontdesk.web.server import serve
+    serve(_settings(a), port=a.port, open_browser=not a.no_browser)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
@@ -163,9 +169,15 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("serve-mcp", help="run the clinic MCP server over stdio")
 
+    u = sub.add_parser("ui", help="open the web UI (local only, http://127.0.0.1:8765)")
+    u.add_argument("--port", type=int, default=8765)
+    u.add_argument("--no-browser", action="store_true", help="do not open a browser tab")
+    u.add_argument("--data-dir")
+
     a = p.parse_args(argv)
     console = Console(highlight=False)
-    return {"run": cmd_run, "eval": cmd_eval, "show": cmd_show, "serve-mcp": cmd_serve}[a.cmd](a, console)
+    return {"run": cmd_run, "eval": cmd_eval, "show": cmd_show, "serve-mcp": cmd_serve,
+            "ui": cmd_ui}[a.cmd](a, console)
 
 
 if __name__ == "__main__":

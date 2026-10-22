@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maplewood Front Desk</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>Maplewood front desk</h1>
+    <p id="clinic-line">Loading…</p>
+  </div>
+  <div class="chips" id="status-chips" aria-live="polite"></div>
+</header>
+
+<div class="layout">
+  <aside class="panel" aria-label="Run controls">
+    <nav class="tabs" role="tablist">
+      <button role="tab" class="tab" data-tab="single" aria-selected="true">One message</button>
+      <button role="tab" class="tab" data-tab="sample" aria-selected="false">Sample 40</button>
+      <button role="tab" class="tab" data-tab="heldout" aria-selected="false">Unseen 22</button>
+      <button role="tab" class="tab" data-tab="history" aria-selected="false">Past runs</button>
+    </nav>
+
+    <section class="tabpane" id="pane-single">
+      <label>Start from a sample message
+        <select id="sample-pick"><option value="">Choose…</option></select>
+      </label>
+      <div class="examples" id="examples" aria-label="Quick examples"></div>
+      <label>Message
+        <textarea id="f-text" rows="4" placeholder="e.g. Can I get my lisinopril refilled?"></textarea>
+      </label>
+      <label>Sender
+        <select id="f-sender"><option value="">Type contact details below</option></select>
+      </label>
+      <div class="row2">
+        <label>Phone or email<input id="f-contact" placeholder="555-0102"></label>
+        <label>Name<input id="f-name" placeholder="optional"></label>
+      </div>
+      <div class="row2">
+        <label>Date of birth<input id="f-dob" type="date"></label>
+        <label>Channel
+          <select id="f-channel"><option>sms</option><option>portal</option><option>email</option></select>
+        </label>
+      </div>
+      <label>Received at (clinic time)<input id="f-at" type="datetime-local" value="2026-11-09T09:00"></label>
+      <p class="hint" id="label-hint" hidden></p>
+      <button class="primary" id="run-single">Process message</button>
+    </section>
+
+    <section class="tabpane" id="pane-sample" hidden>
+      <p>Runs the 40 labelled messages from the brief, then scores them against <code>labels_sample.json</code>.</p>
+      <label>Only these IDs (optional)<input id="sample-ids" placeholder="M003, M006, M018"></label>
+      <p class="hint">A full run makes about 120 AI calls. Use the pace setting below on a free-tier key.</p>
+      <button class="primary" id="run-sample">Run sample messages</button>
+    </section>
+
+    <section class="tabpane" id="pane-heldout" hidden>
+      <p>Runs the 22 messages written after the system was built and never used for tuning, then scores them.</p>
+      <label>Only these IDs (optional)<input id="heldout-ids" placeholder="H002, H018"></label>
+      <button class="primary" id="run-heldout">Run unseen messages</button>
+    </section>
+
+    <section class="tabpane" id="pane-history" hidden>
+      <p>Open an earlier run to replay every step, its scorecard and the human work it created.</p>
+      <button class="secondary" id="refresh-runs">Refresh list</button>
+      <ul class="runlist" id="runlist"></ul>
+    </section>
+
+    <details class="settings" id="settings">
+      <summary>Run settings</summary>
+      <label class="switch"><input type="checkbox" id="s-ai" checked> Use AI (off = keyword rules only)</label>
+      <label>Model<select id="s-model"></select></label>
+      <div class="row2">
+        <label>Deadline per message (s)<input id="s-deadline" type="number" min="1" step="1"></label>
+        <label>Budget per run ($)<input id="s-budget" type="number" min="0" step="0.5"></label>
+      </div>
+      <div class="row2">
+        <label>Pace for batch runs (requests/min)<input id="s-rpm" type="number" min="0" value="12"></label>
+        <label>Parallel understanding calls<input id="s-conc" type="number" min="1" value="2"></label>
+      </div>
+    </details>
+    <p class="error" id="form-error" role="alert" hidden></p>
+  </aside>
+
+  <main class="main" id="main">
+    <section class="empty" id="empty">
+      <h2>Process a message to watch it move through the clinic</h2>
+      <p>Every step appears as it happens: who sent it, the safety check, what the AI understood, each clinic tool it
+        used and what the tool allowed, the actions, and the checked reply draft. Model switches, retries, deadlines and
+        cost show up live.</p>
+      <ol class="legend-steps">
+        <li><b>Identify</b> the sender (Python)</li>
+        <li><b>Safety</b> check: red flags first (Python, then AI)</li>
+        <li><b>Understand</b> the request (AI)</li>
+        <li><b>Act</b> with clinic tools; rules inside the tools (AI + Python)</li>
+        <li><b>Outcome</b>: actions and human queues (Python)</li>
+        <li><b>Reply</b> draft, validated, never sent automatically (Python)</li>
+      </ol>
+    </section>
+
+    <section id="run-view" hidden>
+      <div class="runhead" id="runhead"></div>
+      <div class="progress" id="progress" hidden><div class="bar" id="bar"></div><span id="progress-text"></span></div>
+      <section class="activity" aria-label="Activity">
+        <h3>Activity</h3>
+        <ol id="activity" aria-live="polite"></ol>
+      </section>
+      <div id="alert-slot"></div>
+      <section id="results-list" class="results" hidden aria-label="Messages in this run">
+        <h3>Messages</h3>
+        <table class="rows"><thead><tr><th>ID</th><th>Urgency</th><th>Patient</th><th>Actions</th><th>Time</th><th>AI</th></tr></thead>
+          <tbody id="rows"></tbody></table>
+      </section>
+      <div id="cards"></div>
+      <section id="scorecard" hidden></section>
+      <section id="humanwork" hidden></section>
+    </section>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
