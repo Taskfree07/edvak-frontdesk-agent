@@ -73,6 +73,7 @@ Each run writes `runs/<timestamp>/`: `results.json` (the brief's format), `eval_
 | Code | this repository (`frontdesk/`), run instructions above |
 | Evaluation results on the 40 sample messages | [`EVALUATION.md`](EVALUATION.md), plus `submission/results_sample40.json` (one result per message, brief format) and `submission/eval_report_sample40.json` |
 | This README | `README.md` (a copy is in `submission/`) |
+| AI usage, cost and plan | [`docs/ai-usage-and-cost.md`](docs/ai-usage-and-cost.md): requests and tokens per message, free-tier limits, monthly cost, recommended plan |
 | Supporting docs | [`docs/how-it-works.md`](docs/how-it-works.md) (plain explanation), [`docs/results-before-after.md`](docs/results-before-after.md), [`docs/architecture.drawio`](docs/architecture.drawio), design notes in [`docs/design/`](docs/design/) |
 
 ## 3. How it works
@@ -198,6 +199,7 @@ code is covered by offline tests.
   available to the key; **Groq** (`qwen/qwen3.8-27b`, then `openai/gpt-oss-120b`) as backup, measured at about
   0.2-1.5 s per call.
 - **Calls per message:** emergencies caught by keywords use 0; simple messages 1; actionable ones about 3-5.
+- **Full breakdown of requests, tokens, limits and the recommended plan:** [`docs/ai-usage-and-cost.md`](docs/ai-usage-and-cost.md).
 - **Cost:** about **$0.004 per message, $0.15-0.20 per 40-message run** at paid-tier prices (exact figures in
   [`EVALUATION.md`](EVALUATION.md)). Free-tier keys are not charged but are rate-limited, so batch runs are paced.
 
