@@ -12,6 +12,7 @@ measures how well it does, including every failure.
 
 - **How it works (plain explanation, modules, guardrails, interview Q&A):** [`docs/how-it-works.md`](docs/how-it-works.md)
 - **How to run and test (full guide):** [`docs/how-to-run.md`](docs/how-to-run.md)
+- **Copy-paste test commands:** [`docs/test-commands.md`](docs/test-commands.md)
 - **Before/after of the safety, deadline and Groq changes:** [`docs/results-before-after.md`](docs/results-before-after.md)
 - Architecture diagram (open in draw.io): [`docs/architecture.drawio`](docs/architecture.drawio)
 - System design (how it is built): [`docs/design/2026-10-21-system-design.md`](docs/design/2026-10-21-system-design.md)
