@@ -1,0 +1,1109 @@
+{
+  "summary": {
+    "messages": 40,
+    "urgency_accuracy": 0.925,
+    "emergency_recall": 1.0,
+    "emergencies_expected": 5,
+    "emergencies_missed": 0,
+    "over_escalations": 0,
+    "action_exact_match": 0.75,
+    "action_micro_precision": 0.821,
+    "action_micro_recall": 0.979,
+    "action_micro_f1": 0.893,
+    "patient_id_accuracy": 1.0,
+    "intent_exact_match": 0.875,
+    "intent_mean_jaccard": 0.942,
+    "must_not_violations": 0,
+    "validator_interventions": 1,
+    "suspected_label_inconsistencies": 1,
+    "schedule_integrity_problems": 0,
+    "degraded_messages": 3,
+    "partial_ai_fallbacks": 0,
+    "latency_ms_p50": 15682.5,
+    "latency_ms_p95": 44973.0,
+    "mode": "llm",
+    "model": "gemini-3.5-flash-lite",
+    "run_duration_s": 687.7,
+    "llm_calls": 122,
+    "input_tokens": 236561,
+    "output_tokens": 29583,
+    "cache_read_tokens": 44156,
+    "cost_usd": 0.1675,
+    "llm_stopped": null,
+    "total_tokens": 310300,
+    "calls_per_message": 3.05,
+    "tokens_per_message": 7758,
+    "cost_per_message_usd": 0.004188
+  },
+  "per_message": [
+    {
+      "id": "M001",
+      "urgency_ok": false,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "prepare_refill_for_approval"
+      ],
+      "got": [
+        "prepare_refill_for_approval"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "urgent",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 44973.0,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M002",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "reschedule_appointment"
+      ],
+      "got": [
+        "reschedule_appointment"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 31755.3,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M003",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "escalate_emergency"
+      ],
+      "got": [
+        "escalate_emergency"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "emergency",
+      "accepted_urgency": [
+        "emergency"
+      ],
+      "degraded": false,
+      "duration_ms": 6.7,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M004",
+      "urgency_ok": true,
+      "actions_exact": false,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "offer_appointment",
+        "refill_needs_visit"
+      ],
+      "got": [
+        "offer_appointment",
+        "refill_needs_visit",
+        "route_to_provider"
+      ],
+      "missing_actions": [],
+      "extra_actions": [
+        "route_to_provider"
+      ],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 39644.7,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M005",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "route_to_provider"
+      ],
+      "got": [
+        "route_to_provider"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 50997.2,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M006",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "prepare_refill_for_approval",
+        "route_to_clinician"
+      ],
+      "got": [
+        "prepare_refill_for_approval",
+        "route_to_clinician"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "urgent",
+      "accepted_urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "degraded": false,
+      "duration_ms": 38492.0,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M007",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": false,
+      "expected": [
+        "answer_directly",
+        "offer_new_patient_booking"
+      ],
+      "got": [
+        "answer_directly",
+        "offer_new_patient_booking"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": true,
+      "duration_ms": 47254.7,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M008",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "route_to_billing"
+      ],
+      "got": [
+        "route_to_billing"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 15540.4,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M009",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "prepare_refill_for_approval"
+      ],
+      "got": [
+        "prepare_refill_for_approval"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 10763.0,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M010",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "book_appointment"
+      ],
+      "got": [
+        "book_appointment"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 15877.9,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M011",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "request_verification"
+      ],
+      "got": [
+        "request_verification"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 2.4,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M012",
+      "urgency_ok": true,
+      "actions_exact": false,
+      "patient_ok": true,
+      "intents_ok": false,
+      "expected": [
+        "route_to_provider"
+      ],
+      "got": [
+        "route_to_clinician",
+        "route_to_provider"
+      ],
+      "missing_actions": [],
+      "extra_actions": [
+        "route_to_clinician"
+      ],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 25244.1,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M013",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "refill_too_early"
+      ],
+      "got": [
+        "refill_too_early"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 11200.9,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M014",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "escalate_emergency"
+      ],
+      "got": [
+        "escalate_emergency"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "emergency",
+      "accepted_urgency": [
+        "emergency"
+      ],
+      "degraded": false,
+      "duration_ms": 2.8,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M015",
+      "urgency_ok": true,
+      "actions_exact": false,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "book_appointment"
+      ],
+      "got": [
+        "book_appointment",
+        "route_to_clinician"
+      ],
+      "missing_actions": [],
+      "extra_actions": [
+        "route_to_clinician"
+      ],
+      "urgency": "urgent",
+      "accepted_urgency": [
+        "urgent"
+      ],
+      "degraded": false,
+      "duration_ms": 23607.0,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M016",
+      "urgency_ok": true,
+      "actions_exact": false,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "book_appointment"
+      ],
+      "got": [
+        "offer_alternatives"
+      ],
+      "missing_actions": [
+        "book_appointment"
+      ],
+      "extra_actions": [
+        "offer_alternatives"
+      ],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 10434.6,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M017",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "escalate_emergency"
+      ],
+      "got": [
+        "escalate_emergency"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "emergency",
+      "accepted_urgency": [
+        "emergency",
+        "urgent"
+      ],
+      "degraded": false,
+      "duration_ms": 3.0,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M018",
+      "urgency_ok": false,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "flag_suspicious_instruction",
+        "prepare_refill_for_approval"
+      ],
+      "got": [
+        "flag_suspicious_instruction",
+        "prepare_refill_for_approval"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "urgent",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 24088.3,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M019",
+      "urgency_ok": false,
+      "actions_exact": false,
+      "patient_ok": true,
+      "intents_ok": false,
+      "expected": [
+        "route_to_provider"
+      ],
+      "got": [
+        "route_to_clinician",
+        "route_to_provider"
+      ],
+      "missing_actions": [],
+      "extra_actions": [
+        "route_to_clinician"
+      ],
+      "urgency": "urgent",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 16579.5,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M020",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "prepare_refill_for_approval"
+      ],
+      "got": [
+        "prepare_refill_for_approval"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 22416.7,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M021",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "route_to_provider"
+      ],
+      "got": [
+        "route_to_provider"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 10871.5,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M022",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "cancel_appointment"
+      ],
+      "got": [
+        "cancel_appointment"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 28965.0,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M023",
+      "urgency_ok": true,
+      "actions_exact": false,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "answer_directly"
+      ],
+      "got": [
+        "answer_directly",
+        "route_to_front_desk"
+      ],
+      "missing_actions": [],
+      "extra_actions": [
+        "route_to_front_desk"
+      ],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 10588.5,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M024",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "book_appointment"
+      ],
+      "got": [
+        "book_appointment"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 15824.7,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M025",
+      "urgency_ok": true,
+      "actions_exact": false,
+      "patient_ok": true,
+      "intents_ok": false,
+      "expected": [
+        "prepare_refill_for_approval",
+        "route_to_billing"
+      ],
+      "got": [
+        "answer_directly",
+        "prepare_refill_for_approval",
+        "route_to_billing"
+      ],
+      "missing_actions": [],
+      "extra_actions": [
+        "answer_directly"
+      ],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": true,
+      "duration_ms": 25875.2,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M026",
+      "urgency_ok": true,
+      "actions_exact": false,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "offer_appointment",
+        "refill_needs_visit",
+        "route_to_provider"
+      ],
+      "got": [
+        "offer_appointment",
+        "refill_needs_visit",
+        "route_to_clinician",
+        "route_to_provider"
+      ],
+      "missing_actions": [],
+      "extra_actions": [
+        "route_to_clinician"
+      ],
+      "urgency": "urgent",
+      "accepted_urgency": [
+        "urgent",
+        "routine"
+      ],
+      "degraded": true,
+      "duration_ms": 20010.1,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M027",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "decline_disclosure"
+      ],
+      "got": [
+        "decline_disclosure"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 2.5,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M028",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "offer_alternatives"
+      ],
+      "got": [
+        "offer_alternatives"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 9806.2,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M029",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "offer_alternatives"
+      ],
+      "got": [
+        "offer_alternatives"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 22537.3,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M030",
+      "urgency_ok": true,
+      "actions_exact": false,
+      "patient_ok": true,
+      "intents_ok": false,
+      "expected": [
+        "route_to_clinician"
+      ],
+      "got": [
+        "route_to_clinician",
+        "route_to_front_desk"
+      ],
+      "missing_actions": [],
+      "extra_actions": [
+        "route_to_front_desk"
+      ],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 13789.9,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M031",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "acknowledge"
+      ],
+      "got": [
+        "acknowledge"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 2.1,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M032",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "escalate_emergency"
+      ],
+      "got": [
+        "escalate_emergency"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "emergency",
+      "accepted_urgency": [
+        "emergency"
+      ],
+      "degraded": false,
+      "duration_ms": 2.9,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M033",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "route_to_front_desk"
+      ],
+      "got": [
+        "route_to_front_desk"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 7864.5,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M034",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "reschedule_appointment"
+      ],
+      "got": [
+        "reschedule_appointment"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 18952.9,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M035",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "escalate_emergency"
+      ],
+      "got": [
+        "escalate_emergency"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "emergency",
+      "accepted_urgency": [
+        "emergency"
+      ],
+      "degraded": false,
+      "duration_ms": 2.6,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M036",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "refill_too_early"
+      ],
+      "got": [
+        "refill_too_early"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 15087.3,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M037",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "answer_directly"
+      ],
+      "got": [
+        "answer_directly"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 14959.2,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M038",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "no_action"
+      ],
+      "got": [
+        "no_action"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 1.6,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M039",
+      "urgency_ok": true,
+      "actions_exact": false,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "book_appointment"
+      ],
+      "got": [
+        "book_appointment",
+        "route_to_clinician"
+      ],
+      "missing_actions": [],
+      "extra_actions": [
+        "route_to_clinician"
+      ],
+      "urgency": "urgent",
+      "accepted_urgency": [
+        "urgent",
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 16539.3,
+      "ai_actions_before_fallback": []
+    },
+    {
+      "id": "M040",
+      "urgency_ok": true,
+      "actions_exact": true,
+      "patient_ok": true,
+      "intents_ok": true,
+      "expected": [
+        "route_to_front_desk"
+      ],
+      "got": [
+        "route_to_front_desk"
+      ],
+      "missing_actions": [],
+      "extra_actions": [],
+      "urgency": "routine",
+      "accepted_urgency": [
+        "routine"
+      ],
+      "degraded": false,
+      "duration_ms": 16932.3,
+      "ai_actions_before_fallback": []
+    }
+  ],
+  "emergency_misses": [],
+  "over_escalations": [],
+  "must_not_violations": [],
+  "per_action": {
+    "acknowledge": {
+      "tp": 1,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "answer_directly": {
+      "tp": 3,
+      "fp": 1,
+      "precision": 0.75,
+      "recall": 1.0
+    },
+    "book_appointment": {
+      "tp": 4,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.8
+    },
+    "cancel_appointment": {
+      "tp": 1,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "decline_disclosure": {
+      "tp": 1,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "escalate_emergency": {
+      "tp": 5,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "flag_suspicious_instruction": {
+      "tp": 1,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "no_action": {
+      "tp": 1,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "offer_alternatives": {
+      "fp": 1,
+      "tp": 2,
+      "precision": 0.667,
+      "recall": 1.0
+    },
+    "offer_appointment": {
+      "tp": 2,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "offer_new_patient_booking": {
+      "tp": 1,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "prepare_refill_for_approval": {
+      "tp": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "refill_needs_visit": {
+      "tp": 2,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "refill_too_early": {
+      "tp": 2,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "request_verification": {
+      "tp": 1,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "reschedule_appointment": {
+      "tp": 2,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "route_to_billing": {
+      "tp": 2,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "route_to_clinician": {
+      "tp": 2,
+      "fp": 5,
+      "precision": 0.286,
+      "recall": 1.0
+    },
+    "route_to_front_desk": {
+      "fp": 2,
+      "tp": 2,
+      "precision": 0.5,
+      "recall": 1.0
+    },
+    "route_to_provider": {
+      "fp": 1,
+      "tp": 5,
+      "precision": 0.833,
+      "recall": 1.0
+    }
+  },
+  "label_inconsistencies": [
+    {
+      "id": "M004",
+      "expected": [
+        "offer_appointment",
+        "refill_needs_visit"
+      ],
+      "got": [
+        "offer_appointment",
+        "refill_needs_visit",
+        "route_to_provider"
+      ],
+      "policy": "clinic.json refill_policy.not_seen_in_12_months: 'Offer an appointment and route to the provider' - the label omits route_to_provider"
+    }
+  ],
+  "validator_interventions": [
+    {
+      "id": "M023",
+      "violations": [
+        "LLM draft contains details not in tool facts: ['November 24']"
+      ]
+    }
+  ],
+  "degraded": [
+    "M007",
+    "M025",
+    "M026"
+  ],
+  "schedule_integrity": []
+}

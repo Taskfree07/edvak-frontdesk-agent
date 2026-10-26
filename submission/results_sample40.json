@@ -1,0 +1,845 @@
+[
+  {
+    "id": "M001",
+    "patient_id": "P002",
+    "intents": [
+      "refill"
+    ],
+    "urgency": "urgent",
+    "actions": [
+      "prepare_refill_for_approval"
+    ],
+    "routed_to": [
+      "provider_refills"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "prepare_refill_request",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Robert,\n\nWe've sent your Lisinopril 10 mg refill request to your provider for approval. We'll let you know once it has been reviewed.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M002",
+    "patient_id": "P007",
+    "intents": [
+      "reschedule"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "reschedule_appointment"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "get_patient_appointments",
+      "find_open_slots",
+      "reschedule_appointment",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Priya,\n\nYour appointment has been moved from Wednesday, November 11 at 10:00 AM with Sarah Kim, NP to Friday, November 13 at 1:00 PM with Sarah Kim, NP.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M003",
+    "patient_id": "P003",
+    "intents": [
+      "clinical"
+    ],
+    "urgency": "emergency",
+    "actions": [
+      "escalate_emergency"
+    ],
+    "routed_to": [
+      "clinician_urgent"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Aisha,\n\nThis may be a medical emergency. Please call 911 now or go to the nearest emergency department. Our clinical team has been alerted to your message.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M004",
+    "patient_id": "P004",
+    "intents": [
+      "refill"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "route_to_provider",
+      "refill_needs_visit",
+      "offer_appointment"
+    ],
+    "routed_to": [
+      "provider_refills"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "route_to_queue",
+      "find_open_slots",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Thomas,\n\nTo refill Metformin 500 mg we need to see you first, because your last visit was more than 12 months ago. We've let your provider know. Available appointments: Monday, November 9 at 9:00 AM with Dr. James Okafor. Reply with the one that suits you.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M005",
+    "patient_id": "P006",
+    "intents": [
+      "refill"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "route_to_provider"
+    ],
+    "routed_to": [
+      "provider_refills"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Marcus,\n\nWe've passed your Alprazolam 0.5 mg request to your prescribing provider, who will review it and follow up with you.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M006",
+    "patient_id": "P005",
+    "intents": [
+      "refill",
+      "clinical"
+    ],
+    "urgency": "urgent",
+    "actions": [
+      "route_to_clinician",
+      "prepare_refill_for_approval"
+    ],
+    "routed_to": [
+      "provider_refills",
+      "clinician_urgent"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "prepare_refill_request",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Emily,\n\nWe've sent your Sertraline 50 mg refill request to your provider for approval. We'll let you know once it has been reviewed.\n\nWe've asked one of our clinicians to contact you today.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M007",
+    "patient_id": null,
+    "intents": [
+      "new_patient",
+      "schedule"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "offer_new_patient_booking",
+      "answer_directly"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "get_clinic_info",
+      "find_open_slots",
+      "find_open_slots",
+      "book_appointment",
+      "find_open_slots",
+      "get_clinic_info",
+      "find_open_slots",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Jessica,\n\nYes, we're accepting new patients. A new-patient visit takes 40 minutes. Upcoming openings: Monday, November 9 at 9:00 AM with Sarah Kim, NP, Monday, November 9 at 9:20 AM with Sarah Kim, NP or Monday, November 9 at 10:00 AM with Dr. Maya Patel. Reply with the one you'd like and our front desk will help you register.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M008",
+    "patient_id": "P010",
+    "intents": [
+      "billing"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "route_to_billing"
+    ],
+    "routed_to": [
+      "billing"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Daniel,\n\nWe've passed your message to our billing team, who will get back to you.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M009",
+    "patient_id": "P012",
+    "intents": [
+      "refill"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "prepare_refill_for_approval"
+    ],
+    "routed_to": [
+      "provider_refills"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "prepare_refill_request",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi William,\n\nWe've sent your Levothyroxine 75 mcg refill request to your provider for approval. We'll let you know once it has been reviewed.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M010",
+    "patient_id": "P013",
+    "intents": [
+      "schedule"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "book_appointment"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "find_open_slots",
+      "book_appointment",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Grace,\n\nYou're booked: Tuesday, November 17 at 9:00 AM with Dr. Maya Patel.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M011",
+    "patient_id": "P002",
+    "intents": [
+      "records"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "request_verification"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Robert,\n\nTo protect your privacy we need to verify your identity before we can help with this. Please reply from the phone number or email we have on file, or send your full name and date of birth.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M012",
+    "patient_id": "P014",
+    "intents": [
+      "refill",
+      "clinical"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "route_to_clinician",
+      "route_to_provider"
+    ],
+    "routed_to": [
+      "provider_refills",
+      "clinician_routine"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "route_to_queue",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Kevin,\n\nWe've passed your Zolpidem 10 mg request to your prescribing provider, who will review it and follow up with you.\n\nWe've passed your message to one of our clinicians, who will get back to you.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M013",
+    "patient_id": "P015",
+    "intents": [
+      "refill"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "refill_too_early"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Fatima,\n\nIt's a little early to refill Omeprazole 20 mg. We can prepare the request from Tuesday, November 17 - please message us again on or after that date.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M014",
+    "patient_id": "P017",
+    "intents": [
+      "clinical"
+    ],
+    "urgency": "emergency",
+    "actions": [
+      "escalate_emergency"
+    ],
+    "routed_to": [
+      "clinician_urgent"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Claire,\n\nThis may be a medical emergency. Please call 911 now or go to the nearest emergency department. Our clinical team has been alerted to your message.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M015",
+    "patient_id": "P009",
+    "intents": [
+      "schedule",
+      "clinical"
+    ],
+    "urgency": "urgent",
+    "actions": [
+      "route_to_clinician",
+      "book_appointment"
+    ],
+    "routed_to": [
+      "clinician_urgent"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "find_open_slots",
+      "book_appointment",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Anna,\n\nYou're booked: Monday, November 9 at 9:00 AM with Sarah Kim, NP.\n\nWe've asked one of our clinicians to contact you today.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M016",
+    "patient_id": "P018",
+    "intents": [
+      "schedule"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "offer_alternatives"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "find_open_slots",
+      "draft_reply"
+    ],
+    "reply_draft": "Hola Carlos:\n\nLamentablemente el horario que pidió no está disponible (Dr. James Okafor no está disponible (lunes 16 de noviembre - viernes 20 de noviembre)). Podemos ofrecerle: lunes 16 de noviembre a las 10:20 con Dr. Maya Patel, lunes 16 de noviembre a las 13:00 con Dr. Maya Patel o lunes 16 de noviembre a las 09:00 con Sarah Kim, NP. Responda con el que le convenga.\n\n- Clínica Familiar Maplewood"
+  },
+  {
+    "id": "M017",
+    "patient_id": "P020",
+    "intents": [
+      "refill",
+      "clinical"
+    ],
+    "urgency": "emergency",
+    "actions": [
+      "escalate_emergency"
+    ],
+    "routed_to": [
+      "clinician_urgent"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Samuel,\n\nThis may be a medical emergency. Please call 911 now or go to the nearest emergency department. Our clinical team has been alerted to your message.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M018",
+    "patient_id": "P022",
+    "intents": [
+      "refill"
+    ],
+    "urgency": "urgent",
+    "actions": [
+      "prepare_refill_for_approval",
+      "flag_suspicious_instruction"
+    ],
+    "routed_to": [
+      "provider_refills"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "get_medications",
+      "check_refill_eligibility",
+      "prepare_refill_request",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Ahmed,\n\nWe've sent your Insulin glargine 100 units/mL pen refill request to your provider for approval. We'll let you know once it has been reviewed.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M019",
+    "patient_id": "P021",
+    "intents": [
+      "refill",
+      "clinical"
+    ],
+    "urgency": "urgent",
+    "actions": [
+      "route_to_clinician",
+      "route_to_provider"
+    ],
+    "routed_to": [
+      "provider_refills",
+      "clinician_urgent"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "route_to_queue",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Rachel,\n\nWe've passed your Oxycodone 5 mg request to your prescribing provider, who will review it and follow up with you.\n\nWe've asked one of our clinicians to contact you today.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M020",
+    "patient_id": "P001",
+    "intents": [
+      "refill"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "prepare_refill_for_approval"
+    ],
+    "routed_to": [
+      "provider_refills"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "prepare_refill_request",
+      "draft_reply"
+    ],
+    "reply_draft": "Hola Linda:\n\nHemos enviado su solicitud de resurtido de Metformin 500 mg a su proveedor para su aprobación. Le avisaremos cuando la hayan revisado.\n\n- Clínica Familiar Maplewood"
+  },
+  {
+    "id": "M021",
+    "patient_id": "P008",
+    "intents": [
+      "refill"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "route_to_provider"
+    ],
+    "routed_to": [
+      "provider_refills"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi George,\n\nWe've passed your Amlodipine 5 mg request to your prescribing provider, who will review it and follow up with you.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M022",
+    "patient_id": "P011",
+    "intents": [
+      "cancel"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "cancel_appointment"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "get_patient_appointments",
+      "cancel_appointment",
+      "cancel_appointment",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Hannah,\n\nWe've cancelled your appointments: Tuesday, November 10 at 11:00 AM with Sarah Kim, NP; Tuesday, November 10 at 3:00 PM with Dr. James Okafor.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M023",
+    "patient_id": "P019",
+    "intents": [
+      "admin"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "answer_directly",
+      "route_to_front_desk"
+    ],
+    "routed_to": [
+      "front_desk"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "get_clinic_info",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Olivia,\n\nThank you for your message. A member of our team will review it and get back to you.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M024",
+    "patient_id": "P023",
+    "intents": [
+      "schedule"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "book_appointment"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "find_open_slots",
+      "book_appointment",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Lucy,\n\nYou're booked: Monday, November 9 at 9:20 AM with Sarah Kim, NP.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M025",
+    "patient_id": "P024",
+    "intents": [
+      "refill",
+      "billing",
+      "admin"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "route_to_billing",
+      "prepare_refill_for_approval",
+      "answer_directly"
+    ],
+    "routed_to": [
+      "provider_refills",
+      "billing"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "get_clinic_info",
+      "check_refill_eligibility",
+      "prepare_refill_request",
+      "route_to_queue",
+      "get_clinic_info",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Brian,\n\nWe've sent your Atorvastatin 40 mg refill request to your provider for approval. We'll let you know once it has been reviewed.\n\nWe've passed your message to our billing team, who will get back to you.\n\nWe're open Mon-Fri, 9:00 AM to 5:00 PM (closed 12:00 PM to 1:00 PM for lunch). We're closed on these holidays: Thursday, November 26, Friday, November 27, Friday, December 25.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M026",
+    "patient_id": "P016",
+    "intents": [
+      "refill"
+    ],
+    "urgency": "urgent",
+    "actions": [
+      "route_to_clinician",
+      "route_to_provider",
+      "refill_needs_visit",
+      "offer_appointment"
+    ],
+    "routed_to": [
+      "provider_refills",
+      "clinician_urgent"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "find_open_slots",
+      "check_refill_eligibility",
+      "route_to_queue",
+      "find_open_slots",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Jonathan,\n\nTo refill Escitalopram 10 mg we need to see you first, because your last visit was more than 12 months ago. We've let your provider know. Available appointments: Monday, November 9 at 10:00 AM with Sarah Kim, NP, Monday, November 9 at 10:20 AM with Sarah Kim, NP or Monday, November 9 at 10:00 AM with Dr. Maya Patel. Reply with the one that suits you.\n\nWe've asked one of our clinicians to contact you today.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M027",
+    "patient_id": "P013",
+    "intents": [
+      "third_party"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "decline_disclosure"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Mike,\n\nFor privacy reasons we can't share information about another person. They are welcome to contact us directly, or to add you as an authorised contact.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M028",
+    "patient_id": "P025",
+    "intents": [
+      "schedule"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "offer_alternatives"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "find_open_slots",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Nora,\n\nUnfortunately the time you asked for isn't available (Dr. James Okafor is away Monday, November 16 - Friday, November 20). We can offer: Monday, November 23 at 9:20 AM with Dr. James Okafor, Monday, November 23 at 10:20 AM with Dr. James Okafor or Wednesday, November 18 at 9:00 AM with Dr. Maya Patel. Reply with the one that suits you.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M029",
+    "patient_id": "P002",
+    "intents": [
+      "schedule"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "offer_alternatives"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "check_slot",
+      "find_open_slots",
+      "check_slot",
+      "check_slot",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Robert,\n\nUnfortunately the time you asked for isn't available (that time is already booked). We can offer: Tuesday, November 10 at 9:00 AM with Dr. James Okafor, Tuesday, November 10 at 9:20 AM with Dr. James Okafor or Tuesday, November 10 at 9:40 AM with Dr. James Okafor. Reply with the one that suits you.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M030",
+    "patient_id": "P019",
+    "intents": [
+      "clinical",
+      "records"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "route_to_clinician",
+      "route_to_front_desk"
+    ],
+    "routed_to": [
+      "clinician_routine",
+      "front_desk"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "route_to_queue",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Olivia,\n\nWe've passed your message to one of our clinicians, who will get back to you.\n\nWe've passed your message to our front-desk team, who will get back to you.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M031",
+    "patient_id": "P007",
+    "intents": [
+      "other"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "acknowledge"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Priya,\n\nThank you for your message - we're glad we could help.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M032",
+    "patient_id": "P010",
+    "intents": [
+      "clinical"
+    ],
+    "urgency": "emergency",
+    "actions": [
+      "escalate_emergency"
+    ],
+    "routed_to": [
+      "clinician_urgent"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Daniel,\n\nThis may be a medical emergency. Please call 911 now or go to the nearest emergency department. Our clinical team has been alerted to your message.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M033",
+    "patient_id": "P012",
+    "intents": [
+      "admin"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "route_to_front_desk"
+    ],
+    "routed_to": [
+      "front_desk"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi William,\n\nWe've passed your message to our front-desk team, who will get back to you.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M034",
+    "patient_id": "P015",
+    "intents": [
+      "reschedule"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "reschedule_appointment"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "get_patient_appointments",
+      "find_open_slots",
+      "reschedule_appointment",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Fatima,\n\nYour appointment has been moved from Monday, November 16 at 9:00 AM with Dr. Maya Patel to Monday, November 23 at 9:00 AM with Dr. Maya Patel.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M035",
+    "patient_id": "P022",
+    "intents": [
+      "clinical"
+    ],
+    "urgency": "emergency",
+    "actions": [
+      "escalate_emergency"
+    ],
+    "routed_to": [
+      "clinician_urgent"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Ahmed,\n\nThis may be a medical emergency. Please call 911 now or go to the nearest emergency department. Our clinical team has been alerted to your message.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M036",
+    "patient_id": "P017",
+    "intents": [
+      "refill"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "refill_too_early"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "check_refill_eligibility",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Claire,\n\nIt's a little early to refill Donepezil 10 mg. We can prepare the request from Saturday, November 21 - please message us again on or after that date.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M037",
+    "patient_id": "P023",
+    "intents": [
+      "admin"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "answer_directly"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient",
+      "get_clinic_info",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Lucy,\n\nThe clinic is open Monday through Friday from 9:00 AM to 5:00 PM, with a lunch closure from 12:00 PM to 1:00 PM.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M038",
+    "patient_id": null,
+    "intents": [
+      "spam"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "no_action"
+    ],
+    "routed_to": [],
+    "tool_calls": [
+      "find_patient"
+    ],
+    "reply_draft": null
+  },
+  {
+    "id": "M039",
+    "patient_id": "P014",
+    "intents": [
+      "schedule",
+      "clinical"
+    ],
+    "urgency": "urgent",
+    "actions": [
+      "route_to_clinician",
+      "book_appointment"
+    ],
+    "routed_to": [
+      "clinician_urgent"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "find_open_slots",
+      "route_to_queue",
+      "book_appointment",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Kevin,\n\nYou're booked: Monday, November 9 at 11:00 AM with Dr. James Okafor.\n\nWe've asked one of our clinicians to contact you today.\n\n- Maplewood Family Clinic"
+  },
+  {
+    "id": "M040",
+    "patient_id": "P009",
+    "intents": [
+      "records"
+    ],
+    "urgency": "routine",
+    "actions": [
+      "route_to_front_desk"
+    ],
+    "routed_to": [
+      "front_desk"
+    ],
+    "tool_calls": [
+      "find_patient",
+      "route_to_queue",
+      "draft_reply"
+    ],
+    "reply_draft": "Hi Anna,\n\nWe've passed your message to our front-desk team, who will get back to you.\n\n- Maplewood Family Clinic"
+  }
+]

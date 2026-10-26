@@ -1,235 +1,256 @@
 # Maplewood Front-Desk Agent
 
-An AI agent that works a clinic inbox. It reads each message, works out who sent it, does the safe routine work
-(refills for approval, bookings, cancellations, answers) through **MCP tools that enforce the clinic's policies in
-code**, and hands everything risky to a human. It never answers an emergency itself. An **evaluation harness**
-measures how well it does, including every failure.
+An AI agent that works a clinic inbox. It reads each patient message, checks who sent it, catches emergencies
+first, does the safe routine work (refills prepared for a doctor's approval, bookings, cancellations, answers)
+through **MCP tools that enforce the clinic's policies in code**, and hands everything risky to a human. It never
+sends anything itself: every reply is a checked draft. An **evaluation harness** measures how well it does,
+including every failure.
 
-> **The LLM proposes; Python disposes.** The AI model (Gemini, with Groq as backup) handles language and chooses
-> tools. Python enforces every rule. MCP is the tool interface. The eval harness tells us how well it works.
-
-![How it works](docs/images/workflow-how-it-works.png)
-
-- **How it works (plain explanation, modules, guardrails, interview Q&A):** [`docs/how-it-works.md`](docs/how-it-works.md)
-- **How to run and test (full guide):** [`docs/how-to-run.md`](docs/how-to-run.md)
-- **Copy-paste test commands:** [`docs/test-commands.md`](docs/test-commands.md)
-- **Before/after of the safety, deadline and Groq changes:** [`docs/results-before-after.md`](docs/results-before-after.md)
-- Architecture diagram (open in draw.io): [`docs/architecture.drawio`](docs/architecture.drawio)
-- System design (how it is built): [`docs/design/2026-10-21-system-design.md`](docs/design/2026-10-21-system-design.md)
-- Intent and decisions (why): [`docs/design/2026-10-21-front-desk-agent-design.md`](docs/design/2026-10-21-front-desk-agent-design.md)
+> **The AI proposes; Python enforces.** The AI model (Gemini, with Groq as backup) understands the message and
+> chooses tools. Python enforces every clinic rule. MCP is the tool interface. The evaluation shows how well it works.
 
 ---
 
-## Run it
+## 1. How to run it
 
-```bash
-python -m venv .venv && . .venv/Scripts/activate        # Windows (Git Bash); on macOS/Linux: . .venv/bin/activate
+**Requirements:** Python 3.11+, the data file `edvak_forge_data.zip`, and a free [Gemini API key](https://aistudio.google.com/)
+(optional: a [Groq key](https://console.groq.com/) as the backup). Without any key the app still runs in
+keyword-rules mode.
+
+**Windows (PowerShell):**
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-# unzip edvak_forge_data.zip into ./edvak_forge_data (not committed)
-cp .env.example .env                                     # then put GEMINI_API_KEY (or ANTHROPIC_API_KEY) in .env
-
-frontdesk run                 # process the 40 sample messages with the AI, then evaluate
-frontdesk run --mode rules    # same pipeline, no AI, no API key (offline baseline / fallback)
-pytest                        # offline tests, no network needed
+Expand-Archive edvak_forge_data.zip -DestinationPath edvak_forge_data     # the provided data (not in git)
+Copy-Item .env.example .env; notepad .env                                 # fill in GEMINI_API_KEY (and GROQ_API_KEY)
 ```
 
-Live, on a message nobody has seen:
+**macOS / Linux:**
 
 ```bash
-frontdesk run --text "Can I move my physical to next Tuesday morning?" --contact 555-0119 --name "Olivia Grant"
+python -m venv .venv && . .venv/bin/activate
+pip install -e ".[dev]"
+unzip edvak_forge_data.zip -d edvak_forge_data
+cp .env.example .env    # then fill in GEMINI_API_KEY (and GROQ_API_KEY)
+```
+
+**Run:**
+
+```bash
+pytest                                     # offline tests: no key, no network
+frontdesk run                              # the 40 sample messages with the AI, then the scorecard
+frontdesk run --mode rules                 # the same pipeline without AI (no key needed)
+frontdesk run --text "Can I get my lisinopril refilled?" --contact 555-0102        # one new message
 frontdesk run --text "my dad's face is drooping and he can't lift his arm" --contact 555-0999
 ```
 
-Other commands:
+On a free-tier key, pace a full run: `FRONTDESK_MAX_RPM=12 FRONTDESK_CONCURRENCY=2 frontdesk run --quiet`
+(PowerShell: `$env:FRONTDESK_MAX_RPM='12'; $env:FRONTDESK_CONCURRENCY='2'`).
 
 | Command | What it does |
 |---|---|
-| `frontdesk run --quiet` | One line per message instead of a panel |
-| `frontdesk run --ids M006,M017` | Only those messages |
-| `frontdesk run --messages eval_sets/heldout/messages.json --labels eval_sets/heldout/labels.json` | The held-out set (see Results) |
-| `frontdesk run --transport stdio` | The MCP server runs as a real subprocess (default: in-process; same protocol) |
-| `frontdesk eval [--run DIR]` | Score a run again and print the report |
-| `frontdesk show M017` | Replay one message's full trace (every stage, every tool call) |
+| `frontdesk run --quiet` | One line per message instead of a full panel |
+| `frontdesk run --ids M006,M017` | Only those sample messages |
+| `frontdesk run --messages eval_sets/heldout/messages.json --labels eval_sets/heldout/labels.json` | The 22 unseen messages |
+| `frontdesk run --repeat 3` | Three runs, mean / min / max of every metric |
+| `frontdesk eval [--run DIR]` | Re-score a saved run |
+| `frontdesk show M017` | Replay every step of one message |
 | `frontdesk serve-mcp` | Run the clinic MCP server over stdio for any MCP client |
 
-Each run writes `runs/<timestamp>/`: `results.json` (the brief's format), `traces.jsonl` (every event),
-`trace_summary.json`, `state_final.json` (schedule, queues, prepared refills, outbox), `run_meta.json` (tokens,
-cost, timings) and `eval_report.md/.json`. The latest full sample run is mirrored to `runs/latest/` and
-`./results.json`.
+More: [`docs/how-to-run.md`](docs/how-to-run.md) (settings, alerts, troubleshooting) and
+[`docs/test-commands.md`](docs/test-commands.md) (copy-paste test messages for every behaviour).
 
----
+Each run writes `runs/<timestamp>/`: `results.json` (the brief's format), `eval_report.md/.json`,
+`traces.jsonl` (every step and tool call), `state_final.json` (schedule, queues, prepared refills, reply drafts) and
+`run_meta.json` (models, tokens, cost, latency). `runs/` is git-ignored because it contains patient details.
 
-## Architecture, and why
+## 2. What is in this submission
 
-```
-message ─► 1 Identify sender (code, MCP find_patient)
-        ─► 2 Safety gate A: red-flag patterns (code) ──── emergency ──► fixed 911 reply, clinician_urgent, stop
-        ─► 3 Understand (LLM, structured JSON output)
-        ─► 2 Safety gate B: + the LLM's clinical concern (either signal escalates)
-        ─► 4 Act (LLM chooses MCP tools; policy enforced INSIDE the tools; ends with submit_resolution)
-        ─► 5 Enforce mandatory follow-ups (code) ─► derive actions FROM TOOL RESULTS (code)
-        ─► 6 Reply: templates (EN/ES) or grounded draft ─► validator (code) ─► draft_reply (outbox, never sent)
-        ─► result JSON + event trace ─► evaluation harness
-```
+| Deliverable | Where |
+|---|---|
+| Code | this repository (`frontdesk/`), run instructions above |
+| Evaluation results on the 40 sample messages | [`EVALUATION.md`](EVALUATION.md), plus `submission/results_sample40.json` (one result per message, brief format) and `submission/eval_report_sample40.json` |
+| This README | `README.md` (a copy is in `submission/`) |
+| AI usage, cost and plan | [`docs/ai-usage-and-cost.md`](docs/ai-usage-and-cost.md): requests and tokens per message, free-tier limits, monthly cost, recommended plan |
+| Supporting docs | [`docs/how-it-works.md`](docs/how-it-works.md) (plain explanation), [`docs/results-before-after.md`](docs/results-before-after.md), [`docs/architecture.drawio`](docs/architecture.drawio), design notes in [`docs/design/`](docs/design/) |
+
+## 3. How it works
+
+![How it works](docs/images/workflow-how-it-works.png)
+
+Every message goes through the same six steps. Only the steps a message needs do real work (spam uses no tools, a
+question about opening hours uses one), but the safety check and the final validator always run.
+
+1. **Identify the sender** (Python): phone/email on file, name + date of birth, or an authorised caregiver.
+2. **Safety check** (Python, then AI): red-flag patterns run first. Clear wording ("I can't breathe") is an
+   emergency immediately, with no AI call: fixed 911 reply, urgent clinician queue, no routine work. Wording that is
+   negated, in the past, quoted or a figure of speech ("dying to get in") is handed to the AI; if the AI is
+   unavailable it escalates anyway.
+3. **Understand** (AI): turns the message into structured data (intents, medication, dates, provider, urgency,
+   language, suspicious instructions). The AI's own emergency judgement is checked here too; either check can escalate.
+4. **Act** (AI + Python): the AI picks clinic tools through MCP. Every clinic rule lives inside the tools, so the AI
+   cannot break them; Python adds any step the policy requires that the AI skipped.
+5. **Outcome** (Python): actions and human queues are derived from what the tools actually did, not from what the
+   AI says it did.
+6. **Reply** (Python): templates filled with confirmed tool results (English or Spanish). The AI only drafts answers
+   to general questions. A validator checks every reply; the draft is saved for staff, never sent.
+
+A plain-language walkthrough with the tools, guardrails and likely questions is in
+[`docs/how-it-works.md`](docs/how-it-works.md).
+
+## 4. Architecture, and why
+
+![Agent layers](docs/images/agent-layers.png)
 
 | Decision | Why |
 |---|---|
-| **Policy lives in the tools**, not the prompt | A prompt can be argued with; `prepare_refill_request` re-checks all five refill rules, and there is no approve tool at all. Bookings are re-validated against hours, lunch, holidays, leave, overlaps and the :00/:20/:40 grid. |
-| **The LLM never sees or chooses a patient id** | `find_patient` opens a per-message context. PHI tools get its id injected by the client, and unverified senders are not offered PHI tools at all. Prompt injection cannot reach another patient's record. |
-| **Actions are computed from tool results**, not from what the LLM says | `prepare_refill_for_approval` is emitted only if `prepare_refill_request` succeeded. A claimed slot offer is checked against slots a tool actually returned. |
-| **Two-part safety gate** | Keywords run before any LLM call: instant, free, and still working if the API is down. The LLM's judgement catches what keywords miss (Spanish, symptoms with no numbers). Either one escalates. A red flag inside a figure of speech ("dying to get in"), a negation, a past event, a question or a quote is deferred and cleared only by an explicit LLM all-clear; if the LLM fails it escalates. |
-| **Provider chain + deadlines** | Gemini first, Groq as the backup (same tools, same Python rules). Each call has a timeout and each message a 20 s deadline; a slow or failing model is skipped for that call, an exhausted one for the run. Past the deadline the message continues without AI, with clinical messages routed to a clinician the same day. |
-| **Templates for anything clinical or transactional** | Emergency and clinical wording is never generated. The LLM drafts only answers to general questions, and the validator rejects any date, time, price or phone number not found in the tool facts. |
-| **Proportional processing** | Spam, thanks, third parties and unverified senders never reach the agent. An hours question costs one tool call. |
-| **Mandatory follow-ups in code** | If the agent forgets a policy-required step (e.g. routing a controlled-substance refill to the prescriber), code performs it through the same MCP tool, and the trace records `by: code`. |
-| **Graceful degradation** | If an LLM call fails for one message, that message falls back to the rules path, is marked `degraded`, and the run continues. If the AI had already booked or changed something, nothing is redone: the message goes to the front desk. |
-| **Event stream** | Every stage emits typed events. The terminal renders them now, and the planned web UI will consume the same stream without changes to the pipeline. |
+| **Policy lives in the tools**, not the prompt | A prompt can be argued with. `prepare_refill_request` re-checks all five refill rules, and there is no approve tool at all. Bookings are re-validated against hours, lunch, holidays, leave, overlaps and the :00/:20/:40 grid. |
+| **The AI never sees or chooses a patient id** | `find_patient` opens a per-message context; health-data tools get its id injected by the client, and unverified senders are not offered those tools at all. A prompt injection cannot reach another patient's record. |
+| **Actions come from tool results** | `prepare_refill_for_approval` appears only if `prepare_refill_request` succeeded; an offered slot must be one a tool actually returned. |
+| **Two-part safety check** | Keywords run before any AI call: instant, free and working when the API is down. The AI catches wording the keywords miss. Either escalates; an AI failure never clears a possible emergency. |
+| **Templates for anything clinical or transactional** | Emergency and clinical wording is never generated. AI-drafted answers are rejected if they contain a date, time, price or phone number the tools did not return. |
+| **Provider chain, timeouts, deadline** | Gemini first, Groq as backup. 8 s per AI call, 20 s per message; a slow model is skipped for 30 s, one out of quota for the run. Past the deadline a message continues without AI, with clinical messages sent to a clinician the same day. Work the AI already completed is never redone. |
+| **Spending guard** | Every message shows calls, tokens and cost; a run stops calling the AI and alerts when the budget or every model's quota runs out. |
+| **Typed event stream** | Every step emits an event: the terminal renders them, `traces.jsonl` stores them, the evaluation reads them. A web UI prototype that streams the same events lives on the `ui-prototype` branch (not part of the brief). |
 
-## What I reused vs built
+## 5. The modules
 
-**Reused:** the official **MCP Python SDK** (server + in-process/stdio client), the **Anthropic Python SDK**
-(Messages API, structured outputs, tool use, prompt caching, server-side refusal fallback), **pydantic**, **rich**
-(terminal UI) and **pytest**. No agent framework: the tool loop is about 60 lines, so every call can be logged,
-context-injected and policy-checked. Claude Code (an AI coding assistant) was used heavily while building: it drafted much of the code, the held-out set and its labels. The design, the safety and policy behaviour and the evaluation results were
-reviewed by me; the code is covered by offline tests.
+| Module | Responsibility | Files |
+|---|---|---|
+| Clinic policy | Refill rules, slot validation, calendar, identity matching, medication-name matching. Pure functions, unit-tested | `frontdesk/policy/` |
+| MCP tool server | 14 tools over the clinic data; rules enforced inside each tool; the AI can call 11 of them | `frontdesk/tools/service.py`, `mcp_server.py`, `client.py` |
+| Safety gate | Red-flag patterns with negation / history / quote / idiom handling; combines the AI's judgement | `frontdesk/safety.py` |
+| Understand | AI structured output; keyword-rules fallback | `frontdesk/understand/` |
+| Act | AI tool loop (tools scoped per intent); rules fallback | `frontdesk/act/` |
+| Outcome | Mandatory follow-ups in code; actions and queues from the tool ledger | `frontdesk/outcome.py` |
+| Reply | EN/ES templates, grounded AI answers, validator | `frontdesk/reply/` |
+| AI providers | Gemini, Groq and Claude behind one interface; chain, timeouts, retries, cool-down, cost and quota accounting | `frontdesk/llm.py`, `frontdesk/config.py` |
+| Pipeline and runner | The six steps per message; batch runs; output files | `frontdesk/pipeline.py`, `frontdesk/runner.py` |
+| Evaluation | Scores against labels; deterministic `must_not` and schedule-integrity checks | `frontdesk/eval/harness.py` |
+| Events and CLI | Event bus, terminal rendering, commands | `frontdesk/events.py`, `render.py`, `cli.py` |
 
-**Built:** the clinic policy engine (refill rules, slot validation, calendar, identity, medication-name matching),
-the 14-tool MCP server, the safety gate, the understander and agent prompts and schemas, the rules baseline,
+The MCP tools: `find_patient`, `get_medications`, `check_refill_eligibility`, `prepare_refill_request`,
+`get_patient_appointments`, `find_open_slots`, `check_slot`, `book_appointment`, `reschedule_appointment`,
+`cancel_appointment`, `get_clinic_info`, `route_to_queue` (five human queues), and the program-only
+`draft_reply` and `export_state`.
+
+## 6. Technology used
+
+| Part | Choice |
+|---|---|
+| Language | Python 3.11+ |
+| Tool interface | Official MCP Python SDK (in-process client by default; `--transport stdio` runs the server as a real subprocess) |
+| AI | Gemini via `google-genai` (default `gemini-3.5-flash-lite`); Groq via its OpenAI-compatible API over `httpx` (`qwen/qwen3.8-27b`, `openai/gpt-oss-120b`) as backup; Claude via the `anthropic` SDK supported but not used for the reported results |
+| Data | The provided JSON files, loaded into memory; bookings and cancellations last for one run |
+| Validation and terminal | `pydantic`, `rich`, `python-dotenv` |
+| Tests | `pytest`: 173 offline tests (policy, identity, safety phrasings, tools, pipeline, validator, harness, providers, deadlines) |
+
+## 7. Results (40 sample messages)
+
+Full report, with all 40 messages, the configuration and the failure analysis: **[`EVALUATION.md`](EVALUATION.md)**.
+
+| | AI (this submission) | No AI (keyword rules) |
+|---|---|---|
+| **Emergencies caught** | **5 / 5** | 5 / 5 |
+| **Prohibited actions (`must_not`)** | **0** | 0 |
+| **False emergency alarms** | **0** | 0 |
+| Urgency within accepted set | 92.5% | 97.5% |
+| Actions exactly as labelled | 75.0% | 95.0% |
+| Action recall (required actions present) | 97.9% | 100% |
+| Messages finished without AI | 3 | – |
+| Cost per run / per message (paid-tier prices) | $0.17 / $0.004 | $0 |
+
+Run on 2026-10-22 at commit `f94d087`, one run, with the live configuration. The primary Gemini model was answering
+in 16-18 s that day, so the backup chain (Groq and two other Gemini models) served every AI call.
+
+**What the agent gets wrong:**
+
+- **It is over-cautious.** In 5 messages it adds a same-day clinician call the labels did not ask for, and it rates
+  3 routine messages as urgent.
+- **One booking was not completed (M016).** It offered four valid slots instead of booking one.
+- **One intent was misread (M030).** A lab-result question was also treated as a records request.
+- **The validator blocked an invented date (M023).** That was the guardrail working.
+- **M004 follows the written clinic policy over the label.**
+
+None of these is unsafe. The keyword rules score higher on these 40 because they were written with these messages in
+view. On 22 unseen messages they catch only 59% of actions exactly, against 95.5% with the AI, which is why the AI is
+the default.
+
+## 8. What I reused vs built
+
+**Reused:** the official MCP Python SDK, the Gemini SDK (`google-genai`), Groq's OpenAI-compatible HTTP API,
+the Anthropic SDK, pydantic, rich, python-dotenv and pytest. No agent framework: the tool loop is about 60 lines,
+so every call can be logged, scoped and policy-checked.
+
+**Built:** the clinic policy engine, the 14-tool MCP server, the safety gate, the understander and agent prompts and
+schemas, the provider chain (timeouts, retries, cool-down, cost and quota alerts), the keyword-rules fallback,
 outcome derivation, bilingual templates, the validator, the event and trace system, the CLI, the evaluation harness
-(including deterministic `must_not` checks and schedule-integrity checks), a 22-message held-out evaluation set,
-and the tests.
+(deterministic `must_not` and schedule checks), a 22-message held-out set, and the tests.
 
----
+**How AI was used to build it:** Claude Code (an AI coding assistant) drafted much of the code, the held-out set
+and its labels. The design, the safety and policy behaviour and the evaluation results were reviewed by me; the
+code is covered by offline tests.
 
-## Results
+## 9. Model choice and cost
 
-Two evaluation sets:
+- **Default `gemini-3.5-flash-lite`**, chosen after testing tool calling and structured output on the Gemini models
+  available to the key; **Groq** (`qwen/qwen3.8-27b`, then `openai/gpt-oss-120b`) as backup, measured at about
+  0.2-1.5 s per call.
+- **Calls per message:** emergencies caught by keywords use 0; simple messages 1; actionable ones about 3-5.
+- **Full breakdown of requests, tokens, limits and the recommended plan:** [`docs/ai-usage-and-cost.md`](docs/ai-usage-and-cost.md).
+- **Cost:** about **$0.004 per message, $0.15-0.20 per 40-message run** at paid-tier prices (exact figures in
+  [`EVALUATION.md`](EVALUATION.md)). Free-tier keys are not charged but are rate-limited, so batch runs are paced.
 
-1. **The 40 labelled sample messages.**
-2. **A held-out set of 22 new messages** (`eval_sets/heldout/`). They were written and labelled (with an AI coding
-   assistant) from `clinic.json` policy **after** the system was built, and never used for tuning. Because the
-   expected answers were AI-drafted, treat this set as a generalisation check, not ground truth. They include emergencies with no obvious
-   keywords (a Spanish allergic reaction, low blood sugar with no number, stroke signs from a non-patient), new
-   injection wording, a brand-name refill, name+DOB verification, a verified patient asking about someone else,
-   and leave/holiday scheduling.
+## 10. Known weaknesses
 
-LLM runs: `gemini-3.5-flash-lite`, 2026-10-21, one run each (free-tier key, paced at 12 requests/minute).
+- **The deterministic safety rules are not clinical coverage.** Written by an engineer from public red-flag
+  guidance, not clinically reviewed, tested on synthetic messages only (48 emergency and 20 non-emergency phrasings
+  in `tests/test_safety_probes.py`). Wording they do not anticipate depends on the AI.
+- **Context handling is heuristic.** Negated, historical, quoted or informational red-flag wording is deferred to the
+  AI and escalates if the AI fails; unusual phrasing can still cause a false alarm.
+- **The AI is over-cautious** on some messages and adds a same-day clinician call the labels did not expect.
+- **Rules-mode understanding is brittle** on new phrasing; it is a fallback, not the product.
+- **Slot choice is "earliest valid"**; "next Wednesday" is read as the coming Wednesday.
+- **Free-tier limits** (Gemini daily quotas, Groq tokens per minute) can push messages to the no-AI path during long
+  runs; the report counts and lists them.
 
-| Metric | Rules · sample | Rules · held-out | **LLM · sample** | **LLM · held-out** |
-|---|---|---|---|---|
-| **Emergency recall** | **100% (5/5)** | **50% (2/4)** | **100% (5/5)** | **100% (4/4)** |
-| **must_not violations** | **0** | **0** | **0** | **0** |
-| Over-escalations | 0 | 0 | 0 | 0 |
-| Urgency accuracy | 97.5% | 90.9% | 95.0% | 100% |
-| Action exact-match | 95.0% | 50.0% | 85.0% | 95.5% |
-| Action micro F1 | 97.9% | 56.0% | 94.0% | 98.1% |
-| Patient-id accuracy | 100% | 100% | 100% | 100% |
-| Schedule integrity problems | 0 | 0 | 0 | 0 |
-| Messages degraded to rules | – | – | 0 | 0 |
-| LLM calls per message | 0 | 0 | 3.1 | 3.0 |
-| Cost per run (paid-tier prices) | $0 | $0 | $0.17 | $0.09 |
+## 11. What I'd do with another week
 
-**Headline:** on unseen messages the LLM lifts emergency recall from 2/4 to 4/4 and exact-match actions from 50%
-to 95.5%, with no increase in unsafe actions (0 `must_not` violations, 0 over-escalations in both modes).
-
-### What the numbers mean, honestly
-
-- **The rules baseline overfits the sample.** I wrote it with the 40 messages in view. It scores 95% exact on them,
-  but 50% on unseen messages, and it **misses 2 of 4 held-out emergencies** (a Spanish allergic reaction, low
-  blood sugar described without a number). This is why the LLM is the default and why the safety gate ORs the
-  LLM's judgement into the keyword check. Rules mode is a fallback, not the product.
-- **Where we "fail" the sample on purpose:**
-  - **M004:** the label omits `route_to_provider`, but `clinic.json` says "not seen in 12 months: offer an
-    appointment **and route to the provider**". We follow the policy, so the harness flags this as a *suspected
-    label inconsistency* instead of hiding it (M026, the same situation, does include the routing).
-  - **M019 (rules mode):** "pain is still bad" makes the keyword understander mark the message urgent and route
-    it to a clinician as well as the provider. That is over-cautious, not unsafe.
-- **What the LLM gets wrong (sample: 6 of 40 not exact; held-out: 1 of 22):** apart from M004 above, every miss is
-  the same kind: the LLM judges a message more clinically urgent than the label and adds a same-day clinician
-  route on top of the correct action (M005 "ran out early" on a controlled drug, M015 child's fever, M019
-  post-surgery pain, M026 out of an antidepressant, M039 UTI symptoms, H015). These add human attention; none
-  removes a required action or performs a forbidden one. Tightening this is prompt work on the `urgent_same_day`
-  definition, measured against both sets so it does not cost emergency recall.
-- **Judgement calls, documented:**
-  - **M022:** Hannah has *two* appointments tomorrow and says "something came up", so both are cancelled and
-    listed in the reply.
-  - **`patient_id`:** this is the patient the message is *about* (the labels expect this for M011 and M027), even
-    when the sender is unverified. Verification status is recorded separately in the trace.
-  - **M006:** low mood without explicit intent → same-day `clinician_urgent` routing; the reply only says a
-    clinician will contact them today (any crisis conversation is left to that human), and the eligible refill is
-    still prepared. Explicit or imminent self-harm wording escalates as an emergency.
-
-### Known weaknesses
-
-- **The deterministic safety rules are not clinical coverage.** They were written by an engineer from public
-  red-flag guidance (heart attack and stroke warning signs, breathing, anaphylaxis, hypoglycaemia without numbers,
-  seizures, unconsciousness, overdose, dangerous bleeding, explicit self-harm, common Spanish phrases and spelling
-  variants), are not clinically reviewed, and are tested only on synthetic messages (`tests/test_safety_probes.py`:
-  48 emergency and 20 non-emergency phrasings). Any wording they do not anticipate depends on the LLM.
-- **Context handling is heuristic.** A red-flag phrase that is negated right before it ("no chest pain"), historical
-  ("history of stroke", "in 2019"), an information question ("signs of a stroke?") or quoted is not escalated
-  instantly but deferred to the LLM; if the LLM is unavailable it escalates. Unusual phrasing can still produce a
-  false alarm or rely on the LLM to catch a real emergency.
-- **Rules-mode understanding is brittle** on new phrasing ("resurtir", "update my address").
-- **Slot choice is "earliest valid".** It does not consider provider language match (e.g. a Spanish-speaking NP
-  for a Spanish-preferring patient), and an `inproc` run processes messages sequentially by arrival time.
-
-## Model choice and cost
-
-- **Provider:** one provider layer (`frontdesk/llm.py`) serves Gemini (`google-genai`) or Claude (`anthropic`).
-  The rest of the pipeline does not know which is behind it.
-- **Default model `gemini-3.5-flash-lite`** (chosen after testing tool calling and JSON output on the available
-  Gemini models). If its daily quota runs out, the run switches to the next model in `FRONTDESK_MODEL_FALLBACKS`
-  and says so; when all are exhausted, or the `FRONTDESK_MAX_COST_USD` / `FRONTDESK_MAX_TOKENS` cap is hit, it
-  raises a red alert, stops calling the model and finishes the run in rules mode (marked `degraded`).
-- **Calls per message (measured):** about 3 on average. Emergencies caught by keywords use **0**. Simple messages
-  use 1 (understand). Actionable ones use 1 + about 2–4 agent turns.
-- **Measured cost:** 40-message sample run: 123 calls, 303k input + 32k output tokens = **$0.17 at paid-tier
-  prices (about $0.004 per message)**. Held-out run: $0.09. A free-tier key is not charged but is rate-limited
-  (about 15 requests/minute and a small daily quota per model), which is why the measured run took 14 minutes;
-  latency figures in the reports include that deliberate pacing.
-- Claude is supported (`--model claude-sonnet-5-5` with `ANTHROPIC_API_KEY`) but was not run for these results.
-
-## What I'd do with another week
-
-1. Run both sets **3–5 times** and report mean ± range (`--repeat`). LLM outputs vary, and one run is anecdote;
-   the results above are single runs because of free-tier quotas.
-2. Get a **clinician-reviewed, multilingual red-flag list**, plus a tiny fast classifier as a third safety signal.
-3. **Grow the held-out set to around 200 messages** with a second labeller, measure inter-rater agreement, and
-   track a confusion matrix per action.
-4. **Web UI** on the existing event stream: live pipeline view, inbox, queues, and a schedule calendar, with
-   human approve/edit of every draft before it can be sent.
-5. A smarter slot choice (language match, continuity, patient's stated constraints), and a reply-back flow so
+1. Run both sets **3-5 times** and report mean ± range (`--repeat 3`); the reported results are single runs.
+2. A **clinician-reviewed, multilingual red-flag list** and a small fast classifier as a third safety signal.
+3. **Grow the held-out set to ~200 messages** with a second labeller and measure inter-rater agreement.
+4. Tighten the AI's `urgent_same_day` judgement to remove over-caution without costing emergency recall.
+5. Human review screen for drafts and queues (the `ui-prototype` branch is a start), and a reply-back flow so
    offered slots can be confirmed.
-6. Model/effort sweep: a cheaper model for understanding and a stronger one only for the agent turns, to cut cost per message
-   while holding the safety metrics.
+6. Smarter slot choice (language match, continuity, stated constraints) and a model sweep per step.
 
-## Before this touches real patient data
+## 12. Before this touches real patient data
 
-- A **BAA** with the LLM provider, zero-data-retention settings, and PHI minimisation in prompts (send only what
-  the step needs); redact or encrypt traces.
-- **Real identity verification** (portal auth / OTP), not name + DOB alone.
-- **AuthN/AuthZ on the MCP server**, per-tool scopes, rate limits, and an immutable audit log of every tool call.
-- **Human approval** of every outgoing message and every schedule change at first, then graduated autonomy per
-  action type, earned with measured accuracy.
+- A **BAA** with the AI provider, zero-data-retention settings, and only the minimum patient data in prompts;
+  encrypted or redacted traces.
+- **Real identity verification** (portal login or one-time code), not name + date of birth alone.
+- **Authentication and per-tool permissions on the MCP server**, rate limits, and an immutable audit log.
+- **Human approval** of every outgoing message and schedule change at first, then graduated autonomy per action
+  type, earned with measured accuracy.
 - **Clinical governance:** sign-off on the red-flag list and templates, an incident process, and monitoring of
-  missed-emergency and override rates in production.
-- Encryption at rest/in transit, backups, retention policy, a real database with transactional booking
-  (concurrency), integration with the actual EHR/PM system, and accessibility and language review of templates.
+  missed emergencies and false alarms in production.
+- Encryption, backups, retention policy, a transactional database for bookings, integration with the real EHR and
+  scheduling system, and accessibility and language review of templates.
 
----
-
-## Project layout
+## 13. Project layout
 
 ```
 frontdesk/
-  policy/        refill.py scheduling.py calendar.py identity.py medications.py   (pure rules, unit-tested)
-  tools/         service.py (all tools) · mcp_server.py (MCP) · client.py (MCP client + ledger + context injection)
-  understand/    llm.py (LLM structured output) · rules.py + dates.py (baseline) · schema.py
-  act/           llm_agent.py (LLM tool loop) · rule_agent.py (baseline) · resolution.py
-  safety.py  outcome.py  reply/ (templates, compose, validate)  pipeline.py  runner.py  events.py  render.py  cli.py
+  policy/        refill.py scheduling.py calendar.py identity.py medications.py   (pure rules)
+  tools/         service.py (tools) · mcp_server.py (MCP) · client.py (MCP client, ledger, context injection)
+  understand/    llm.py (AI structured output) · rules.py + dates.py (fallback) · schema.py
+  act/           llm_agent.py (AI tool loop) · rule_agent.py (fallback) · resolution.py
+  safety.py  outcome.py  reply/  llm.py  config.py  pipeline.py  runner.py  events.py  render.py  cli.py
   eval/harness.py
-eval_sets/heldout/   22 held-out messages + labels
-tests/               offline tests (policy, identity, safety, MCP tools, pipeline, validator, harness, LLM loop with a fake model)
-edvak_forge_data/    the provided data (synthetic)
+eval_sets/heldout/   22 unseen messages + labels
+submission/          README copy, evaluation results for the 40 sample messages
+docs/                how-it-works, how-to-run, test commands, diagrams, design notes
+tests/               offline tests
 ```
